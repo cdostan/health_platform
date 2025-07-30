@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>记录睡眠</h2>
+    
+    {% if form.errors %}
+    <div class="alert alert-danger">
+        {% for field, errors in form.errors.items %}
+            <strong>{{ field }}:</strong>
+            {% for error in errors %}
+                {{ error }}
+            {% endfor %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" class="col-md-6">
+        {% csrf_token %}
+        
+        <!-- 日期字段 -->
+        <div class="mb-3">
+            <label for="id_date" class="form-label">记录日期</label>
+            <input type="date" name="date" 
+                   id="id_date" 
+                   class="form-control {% if form.date.errors %}is-invalid{% endif %}"
+                   value="{{ form.date.value|date:'Y-m-d' }}">
+            {% if form.date.errors %}
+                <div class="invalid-feedback">
+                    {{ form.date.errors|join:", " }}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- 入睡时间 -->
+        <div class="mb-3">
+            <label for="id_bedtime" class="form-label">入睡时间</label>
+            <input type="time" name="bedtime" 
+                   id="id_bedtime" 
+                   class="form-control {% if form.bedtime.errors %}is-invalid{% endif %}"
+                   value="{{ form.bedtime.value|default:'22:00' }}">
+            <small class="text-muted">24小时制（如23:30）</small>
+            {% if form.bedtime.errors %}
+                <div class="invalid-feedback">
+                    {{ form.bedtime.errors|join:", " }}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- 起床时间 -->
+        <div class="mb-3">
+            <label for="id_wakeup_time" class="form-label">起床时间</label>
+            <input type="time" name="wakeup_time" 
+                   id="id_wakeup_time" 
+                   class="form-control {% if form.wakeup_time.errors %}is-invalid{% endif %}"
+                   value="{{ form.wakeup_time.value|default:'07:00' }}">
+            {% if form.wakeup_time.errors %}
+                <div class="invalid-feedback">
+                    {{ form.wakeup_time.errors|join:", " }}
+                </div>
+            {% endif %}
+        </div>
+
+        <button type="submit" class="btn btn-primary">保存记录</button>
+    </form>
+</div>
+{% endblock %}

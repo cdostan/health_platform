@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>我的睡眠记录</h2>
+        <a href="{% url 'sleep-add' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> 新增记录
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>入睡时间</th>
+                    <th>起床时间</th>
+                    <th>睡眠时长</th>
+                    <th>质量评分</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in sleep_records %}
+                <tr>
+                    <td>{{ record.date|date:"Y-m-d" }}</td>
+                    <td>{{ record.bedtime|time:"H:i" }}</td>
+                    <td>{{ record.wakeup_time|time:"H:i" }}</td>
+                    <td>{{ record.duration }} 小时</td>
+                    <td>
+                        <span class="badge bg-{% if record.quality >= 4 %}success{% elif record.quality >= 2 %}warning{% else %}danger{% endif %}">
+                            睡眠质量: {{ record.quality }}/5
+                        </span>
+                        <small class="text-muted">({{ record.duration }}小时)</small>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">暂无记录</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

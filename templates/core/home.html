@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- 健康概览卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">最近睡眠</h5>
+                    {% if chart_data.hours|default:0|length > 0 %}
+                        <p class="display-6 mb-1">
+                            {{ chart_data.hours|last|default:"-" }}小时
+                        </p>
+                        <p class="mb-0">
+                            质量: 
+                            <span class="badge bg-{% if chart_data.quality|last >= 4 %}success{% elif chart_data.quality|last >= 2 %}warning{% else %}danger{% endif %}">
+                                {{ chart_data.quality|last }}/5
+                            </span>
+                        </p>
+                    {% else %}
+                        <p class="display-6">--</p>
+                    {% endif %}
+                    <a href="{% url 'sleep-list' %}" class="text-white small d-block mt-2">查看历史记录 →</a>
+                </div>
+            </div>
+        </div>
+        <!-- 添加运动和饮食 -->
+    </div>
+
+    <!-- 最近7天睡眠图表卡片 -->
+    <div class="card mb-4">
+        <div class="card-header">最近7天睡眠数据</div>
+        <div class="card-body">
+            <canvas id="sleepChart" height="100"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('sleepChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: {{ chart_data.labels|safe }},
+                datasets: [
+                    {
+                        label: '睡眠时长（小时）',
+                        data: {{ chart_data.hours|safe }},
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: '睡眠质量（分）',
+                        data: {{ chart_data.quality|safe }},
+                        type: 'line',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 5,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: { text: '时长（小时）', display: true },
+                        min: 0
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: { text: '质量（分）', display: true },
+                        min: 0,
+                        max: 5,
+                        grid: { drawOnChartArea: false }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
