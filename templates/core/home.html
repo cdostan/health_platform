@@ -4,16 +4,17 @@
 <div class="container mt-4">
     <!-- 健康概览卡片 -->
     <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card text-white bg-primary">
+        <!-- 睡眠卡片 -->
+        <div class="col-md-4 mb-3 mb-md-0">
+            <div class="card text-white bg-primary h-100">
                 <div class="card-body">
-                    <h5 class="card-title">最近睡眠</h5>
+                    <h5 class="card-title"><i class="bi bi-moon"></i> 最近睡眠</h5>
                     {% if chart_data.hours|default:0|length > 0 %}
                         <p class="display-6 mb-1">
                             {{ chart_data.hours|last|default:"-" }}小时
                         </p>
                         <p class="mb-0">
-                            质量: 
+                            质量:
                             <span class="badge bg-{% if chart_data.quality|last >= 4 %}success{% elif chart_data.quality|last >= 2 %}warning{% else %}danger{% endif %}">
                                 {{ chart_data.quality|last }}/5
                             </span>
@@ -25,25 +26,103 @@
                 </div>
             </div>
         </div>
-        <!-- 添加运动和饮食 -->
-    </div>
 
-    <!-- 最近7天睡眠图表卡片 -->
-    <div class="card mb-4">
-        <div class="card-header">最近7天睡眠数据</div>
-        <div class="card-body">
-            <canvas id="sleepChart" height="100"></canvas>
+        <!-- 运动卡片 -->
+        <div class="col-md-4 mb-3 mb-md-0">
+            <div class="card text-white bg-success h-100">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-bicycle"></i> 今日运动</h5>
+                    {% if today_exercises.exists %}
+                        <p class="display-6 mb-1">
+                            {{ today_exercise_duration }}分钟
+                        </p>
+                        <p class="mb-0">
+                            消耗: {{ today_exercise_calories }}卡路里
+                        </p>
+                        {% if latest_exercise %}
+                        <p class="small mt-1 mb-0">
+                            最近: {{ latest_exercise.get_exercise_type_display }}
+                        </p>
+                        {% endif %}
+                    {% else %}
+                        <p class="display-6">--</p>
+                        <p class="mb-0">暂无记录</p>
+                    {% endif %}
+                    <a href="{% url 'exercise-list' %}" class="text-white small d-block mt-2">查看历史记录 →</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 饮食卡片 -->
+        <div class="col-md-4">
+            <div class="card text-white bg-info h-100">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-egg-fried"></i> 今日饮食</h5>
+                    {% if today_diet %}
+                        <p class="display-6 mb-1">
+                            {{ today_calories }}卡路里
+                        </p>
+                        <p class="mb-0">
+                            {{ today_diet.count }}条记录
+                        </p>
+                    {% else %}
+                        <p class="display-6">--</p>
+                    {% endif %}
+                    <a href="{% url 'diet-list' %}" class="text-white small d-block mt-2">查看历史记录 →</a>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- 健康数据图表 -->
+    <div class="row">
+        <!-- 睡眠图表 -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-moon"></i> 最近7天睡眠数据
+                </div>
+                <div class="card-body">
+                    <canvas id="sleepChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 运动图表 -->
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <i class="bi bi-bicycle"></i> 最近7天运动数据
+                </div>
+                <div class="card-body">
+                    <canvas id="exerciseChart" height="250"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 饮食图表 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <i class="bi bi-egg-fried"></i> 最近7天饮食数据
+                </div>
+                <div class="card-body">
+                    <canvas id="dietChart" height="150"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const ctx = document.getElementById('sleepChart');
-    if (ctx) {
-        new Chart(ctx, {
+    // 睡眠图表
+    const sleepCtx = document.getElementById('sleepChart');
+    if (sleepCtx) {
+        new Chart(sleepCtx, {
             type: 'bar',
             data: {
                 labels: {{ chart_data.labels|safe }},
@@ -68,6 +147,7 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 scales: {
                     y: {
                         type: 'linear',
@@ -84,6 +164,90 @@ document.addEventListener('DOMContentLoaded', function() {
                         min: 0,
                         max: 5,
                         grid: { drawOnChartArea: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // 运动图表
+    const exerciseCtx = document.getElementById('exerciseChart');
+    if (exerciseCtx) {
+        new Chart(exerciseCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ exercise_chart_data.labels|safe }},
+                datasets: [
+                    {
+                        label: '运动时长（分钟）',
+                        data: {{ exercise_chart_data.duration|safe }},
+                        backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: '消耗卡路里',
+                        data: {{ exercise_chart_data.calories|safe }},
+                        type: 'line',
+                        borderColor: 'rgba(253, 126, 20, 1)',
+                        backgroundColor: 'rgba(253, 126, 20, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 5,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: { text: '时长（分钟）', display: true },
+                        min: 0
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: { text: '卡路里', display: true },
+                        min: 0,
+                        grid: { drawOnChartArea: false }
+                    }
+                }
+            }
+        });
+    }
+
+    // 饮食图表
+    const dietCtx = document.getElementById('dietChart');
+    if (dietCtx) {
+        new Chart(dietCtx, {
+            type: 'line',
+            data: {
+                labels: {{ diet_chart_data.labels|safe }},
+                datasets: [
+                    {
+                        label: '每日卡路里摄入',
+                        data: {{ diet_chart_data.calories|safe }},
+                        borderColor: 'rgba(23, 162, 184, 1)',
+                        backgroundColor: 'rgba(23, 162, 184, 0.1)',
+                        borderWidth: 2,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: '卡路里'
+                        }
                     }
                 }
             }
