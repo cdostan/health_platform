@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
-from .views import SleepCreateView, SleepListView, ExerciseCreateView, ExerciseListView, DietCreateView, DietListView, HomeView
+from .views import SleepCreateView, SleepListView, ExerciseCreateView, ExerciseListView, DietCreateView, DietListView,profile_edit, HomeView
+
 
 urlpatterns = [
     path('', HomeView.as_view(), name='home'),  # 根URL对应的视图
@@ -10,5 +11,7 @@ urlpatterns = [
     path('exercise/add/', ExerciseCreateView.as_view(), name='exercise-add'),
     path('diet/', DietListView.as_view(), name='diet-list'),
     path('diet/add/', DietCreateView.as_view(), name='diet-add'),
+    path('profile/', profile_edit, name='profile'),
+    path('advice/', views.HealthAdviceView.as_view(), name='health_advice'),
 
 ]

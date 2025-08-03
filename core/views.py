@@ -1,3 +1,4 @@
+from django.db.models import Avg, Sum
 from django.shortcuts import render
 
 # Create your views here.
@@ -6,9 +7,29 @@ def home(request):
     return render(request, 'core/home.html')
 
 from django.views.generic import CreateView, ListView, TemplateView
-from .models import SleepRecord,ExerciseRecord,DietRecord
-from .forms import SleepRecordForm,ExerciseRecordForm,DietRecordForm
+from .models import SleepRecord,ExerciseRecord,DietRecord,UserProfile
+from .forms import SleepRecordForm,ExerciseRecordForm,DietRecordForm,UserProfileForm
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from datetime import timedelta
+
+@login_required
+def profile_edit(request):
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, instance=profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '健康档案已更新')
+            return redirect('profile')
+    else:
+        form = UserProfileForm(instance=profile)
+
+    return render(request, 'core/profile.html', {'form': form})
 
 class SleepCreateView(LoginRequiredMixin, CreateView):
     model = SleepRecord
@@ -30,7 +51,92 @@ class SleepListView(LoginRequiredMixin, ListView):
     context_object_name = 'sleep_records'
 
     def get_queryset(self):
-        return SleepRecord.objects.filter(user=self.request.user).order_by('-date')[:7]
+        return DietRecord.objects.filter(user=self.request.user).order_by('-date', 'meal_type')[:14]
+
+class HealthAdviceView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/advice.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        today = timezone.localdate()
+        seven_days_ago = today - timedelta(days=7)
+
+        # 获取用户健康档案 - 统一使用UserProfile
+        profile, created = UserProfile.objects.get_or_create(user=user)
+
+        # 获取近7天的健康数据
+        sleep_records = SleepRecord.objects.filter(user=user, date__gte=seven_days_ago)
+        exercise_records = ExerciseRecord.objects.filter(user=user, date__gte=seven_days_ago)
+        diet_records = DietRecord.objects.filter(user=user, date__gte=seven_days_ago)
+
+        # 数据汇总和分析
+        avg_sleep_duration_minutes = sum(r.duration for r in sleep_records) / len(sleep_records) if sleep_records else 0
+        total_exercise_duration = sum(r.duration for r in exercise_records)
+        avg_daily_calories = sum(r.calories for r in diet_records) / 7 if diet_records else 0
+
+        # 生成健康建议
+        advice = self.generate_advice(user, avg_sleep_duration_minutes, total_exercise_duration, avg_daily_calories)
+
+        context.update({
+            'user': user,
+            'profile': profile,  # 统一使用profile变量名
+            'avg_sleep_duration': f"{avg_sleep_duration_minutes / 60:.2f}",
+            'total_exercise_duration': total_exercise_duration,
+            'avg_daily_calories': f"{avg_daily_calories:.2f}",
+            'advice': advice
+        })
+
+        return context
+
+    def generate_advice(self, user, avg_sleep_duration_minutes, total_exercise_duration, avg_daily_calories):
+        advice_list = []
+        profile = UserProfile.objects.get(user=user)
+
+        # 睡眠建议
+        if avg_sleep_duration_minutes < 7 * 60:
+            advice_list.append("您的平均睡眠时间少于7小时，建议您调整作息，争取每天有充足的睡眠。")
+
+        # 运动建议
+        if total_exercise_duration < 150:
+            advice_list.append("您近7天的运动时长较短，建议您增加运动，每周至少进行150分钟的中等强度运动。")
+
+        # 饮食建议
+        if profile.age > 18:
+            if avg_daily_calories > 2500 and profile.gender == '男':
+                advice_list.append("您的平均每日卡路里摄入较高，建议您注意饮食均衡，减少高热量食物摄入。")
+            elif avg_daily_calories > 2000 and profile.gender == '女':
+                advice_list.append("您的平均每日卡路里摄入较高，建议您注意饮食均衡，减少高热量食物摄入。")
+
+        if not advice_list:
+            advice_list.append("您的健康状况良好，请继续保持！")
+
+        return advice_list
+
+    def generate_advice(self, user, avg_sleep_duration_minutes, total_exercise_duration, avg_daily_calories):
+        advice_list = []
+
+        # 睡眠建议
+        # 修正：将7小时转换为420分钟
+        if avg_sleep_duration_minutes < 7 * 60:
+            advice_list.append("您的平均睡眠时间少于7小时，建议您调整作息，争取每天有充足的睡眠。")
+
+        # 运动建议
+        if total_exercise_duration < 150:
+            advice_list.append("您近7天的运动时长较短，建议您增加运动，每周至少进行150分钟的中等强度运动。")
+
+        # 饮食建议
+        profile, created = UserProfile.objects.get_or_create(user=user)
+        if profile.age > 18:
+            if avg_daily_calories > 2500 and profile.gender == '男':
+                advice_list.append("您的平均每日卡路里摄入较高，建议您注意饮食均衡，减少高热量食物摄入。")
+            elif avg_daily_calories > 2000 and profile.gender == '女':
+                advice_list.append("您的平均每日卡路里摄入较高，建议您注意饮食均衡，减少高热量食物摄入。")
+
+        if not advice_list:
+            advice_list.append("您的健康状况良好，请继续保持！")
+
+        return advice_list
 
 class ExerciseCreateView(LoginRequiredMixin, CreateView):
     model = ExerciseRecord
@@ -59,7 +165,33 @@ class HomeView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         today = timezone.now().date()
+        # 获取用户profile
+        profile = self.request.user.core_profile
 
+        # 计算睡眠进度
+        sleep_records = SleepRecord.objects.filter(
+            user=self.request.user,
+            date=today
+        )
+        sleep_hours = sum(record.duration for record in sleep_records)
+        sleep_progress = min(100, (sleep_hours / profile.daily_sleep_goal * 100)) if profile.daily_sleep_goal else 0
+
+        # 计算运动进度
+        exercise_records = ExerciseRecord.objects.filter(
+            user=self.request.user,
+            date=today
+        )
+        exercise_calories = sum(record.calories for record in exercise_records)
+        exercise_progress = min(100, (
+                    exercise_calories / profile.daily_exercise_goal * 100)) if profile.daily_exercise_goal else 0
+
+        # 添加到上下文
+        context.update({
+            'sleep_hours': round(sleep_hours, 1),
+            'sleep_progress': round(sleep_progress),
+            'exercise_minutes': exercise_calories,
+            'exercise_progress': round(exercise_progress),
+        })
         # 睡眠数据处理
         end_date = timezone.now().date()
         start_date = end_date - timedelta(days=6)

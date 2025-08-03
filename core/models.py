@@ -5,7 +5,91 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from users.models import CustomUser
 import datetime
-from django.contrib.auth.models import AbstractUser
+from django.conf import settings
+
+
+class UserProfile(models.Model):
+    GENDER_CHOICES = [
+        ('男', '男'),
+        ('女', '女'),
+    ]
+    """扩展用户信息的Profile模型，与auth.User一对一关联"""
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='core_profile'  # 自定义反向关系名称
+    )
+    # 同步auth.User的字段
+    age = models.PositiveSmallIntegerField(
+        '年龄',
+        validators=[MinValueValidator(1), MaxValueValidator(120)],
+        null=True,
+        blank=True
+    )
+    gender = models.CharField(
+        '性别',
+        max_length=1,
+        choices=GENDER_CHOICES,
+        default='U',
+        blank=True
+    )
+
+    # 健康相关属性
+    height = models.PositiveSmallIntegerField(
+        '身高(cm)',
+        validators=[MinValueValidator(100), MaxValueValidator(250)],
+        null=True,
+        blank=True
+    )
+    weight = models.DecimalField(
+        '体重(kg)',
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(20), MaxValueValidator(300)],
+        null=True,
+        blank=True
+    )
+
+    # 健康目标
+    daily_sleep_goal = models.PositiveSmallIntegerField(
+        '每日睡眠目标(小时)',
+        default=8,
+        validators=[MinValueValidator(4), MaxValueValidator(12)]
+    )
+    daily_exercise_goal = models.PositiveSmallIntegerField(
+        '每日运动目标(卡路里)',
+        default=500,
+        validators=[MinValueValidator(200), MaxValueValidator(2000)]
+    )
+
+
+    # 健康档案
+    blood_type = models.CharField(
+        '血型',
+        max_length=10,
+        choices=[
+            ('A', 'A型'),
+            ('B', 'B型'),
+            ('AB', 'AB型'),
+            ('O', 'O型')
+        ],
+        blank=True
+    )
+    allergies = models.TextField('过敏史', blank=True)
+
+    class Meta:
+        verbose_name = '用户健康档案'
+        verbose_name_plural = '用户健康档案'
+
+    @property
+    def bmi(self):
+        """计算BMI指数"""
+        if self.height and self.weight:
+            return round(float(self.weight) / ((self.height / 100) ** 2), 1)
+        return None
+
+    def __str__(self):
+        return f"{self.user.username}的健康档案"
 
 class SleepRecord(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, verbose_name="用户")

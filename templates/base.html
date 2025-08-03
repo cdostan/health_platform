@@ -17,6 +17,12 @@
             padding: 0.5rem;
             margin-bottom: 1rem;
         }
+        .profile-card {
+            transition: transform 0.3s;
+        }
+        .profile-card:hover {
+            transform: translateY(-5px);
+        }
     </style>
 </head>
 <body>
@@ -68,18 +74,27 @@
                 </ul>
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
-                    <li class="nav-item">
-                        <span class="nav-link">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdown" role="button"
+                           data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-person-circle"></i> {{ user.username }}
-                        </span>
-                    </li>
-                    <li class="nav-item">
-                        <form action="{% url 'logout' %}" method="post">
-                            {% csrf_token %}
-                            <button type="submit" class="nav-link btn btn-link">
-                                <i class="bi bi-box-arrow-right"></i> 注销
-                            </button>
-                        </form>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdown">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'profile' %}">
+                                    <i class="bi bi-person-lines-fill"></i> 个人中心
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form action="{% url 'logout' %}" method="post">
+                                    {% csrf_token %}
+                                    <button type="submit" class="dropdown-item">
+                                        <i class="bi bi-box-arrow-right"></i> 注销
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
                     </li>
                     {% else %}
                     <li class="nav-item">

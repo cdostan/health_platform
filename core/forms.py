@@ -3,6 +3,26 @@ from .models import SleepRecord, ExerciseRecord, DietRecord, CustomUser
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.utils import timezone
 import datetime
+from .models import UserProfile
+
+class UserProfileForm(forms.ModelForm):
+    class Meta:
+        model = UserProfile
+        fields = [
+            'height', 'weight', 'age','gender',
+            'daily_sleep_goal', 'daily_exercise_goal',
+            'blood_type', 'allergies'
+        ]
+        widgets = {
+            'height': forms.NumberInput(attrs={'class': 'form-control'}),
+            'weight': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
+            'age': forms.NumberInput(attrs={'class': 'form-control'}),
+            'gender': forms.Select(attrs={'class': 'form-control'}),
+            'daily_sleep_goal': forms.NumberInput(attrs={'class': 'form-control'}),
+            'daily_exercise_goal': forms.NumberInput(attrs={'class': 'form-control'}),
+            'blood_type': forms.Select(attrs={'class': 'form-control'}),
+            'allergies': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
 
 class SleepRecordForm(forms.ModelForm):
     date = forms.DateField(
