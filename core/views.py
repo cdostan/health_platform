@@ -51,7 +51,7 @@ class SleepListView(LoginRequiredMixin, ListView):
     context_object_name = 'sleep_records'
 
     def get_queryset(self):
-        return DietRecord.objects.filter(user=self.request.user).order_by('-date', 'meal_type')[:14]
+        return SleepRecord.objects.filter(user=self.request.user).order_by('-date')[:14]
 
 class HealthAdviceView(LoginRequiredMixin, TemplateView):
     template_name = 'core/advice.html'
@@ -62,7 +62,7 @@ class HealthAdviceView(LoginRequiredMixin, TemplateView):
         today = timezone.localdate()
         seven_days_ago = today - timedelta(days=7)
 
-        # 获取用户健康档案 - 统一使用UserProfile
+        # 获取用户健康档案
         profile, created = UserProfile.objects.get_or_create(user=user)
 
         # 获取近7天的健康数据
@@ -70,71 +70,69 @@ class HealthAdviceView(LoginRequiredMixin, TemplateView):
         exercise_records = ExerciseRecord.objects.filter(user=user, date__gte=seven_days_ago)
         diet_records = DietRecord.objects.filter(user=user, date__gte=seven_days_ago)
 
-        # 数据汇总和分析
-        avg_sleep_duration_minutes = sum(r.duration for r in sleep_records) / len(sleep_records) if sleep_records else 0
-        total_exercise_duration = sum(r.duration for r in exercise_records)
-        avg_daily_calories = sum(r.calories for r in diet_records) / 7 if diet_records else 0
+        # 计算平均睡眠时间（小时）
+        if sleep_records:
+            total_sleep_hours = sum(r.duration for r in sleep_records)
+            avg_sleep_hours = total_sleep_hours / len(sleep_records)
+        else:
+            avg_sleep_hours = 0
 
-        # 生成健康建议
-        advice = self.generate_advice(user, avg_sleep_duration_minutes, total_exercise_duration, avg_daily_calories)
+        # 计算运动总时长（分钟）
+        total_exercise_duration = sum(r.duration for r in exercise_records) if exercise_records else 0
+
+        # 计算平均每日卡路里
+        if diet_records:
+            avg_daily_calories = sum(r.calories for r in diet_records) / 7
+        else:
+            avg_daily_calories = 0
+
+        # 生成健康建议（使用小时单位）
+        advice = self.generate_advice(
+            user=user,
+            avg_sleep_hours=avg_sleep_hours,
+            total_exercise_duration=total_exercise_duration,
+            avg_daily_calories=avg_daily_calories
+        )
 
         context.update({
             'user': user,
-            'profile': profile,  # 统一使用profile变量名
-            'avg_sleep_duration': f"{avg_sleep_duration_minutes / 60:.2f}",
+            'profile': profile,
+            'avg_sleep_duration': f"{avg_sleep_hours:.2f}",
             'total_exercise_duration': total_exercise_duration,
             'avg_daily_calories': f"{avg_daily_calories:.2f}",
-            'advice': advice
+            'advice': advice,
+            'sleep_records_count': len(sleep_records)  # 添加记录数用于调试
         })
 
         return context
 
-    def generate_advice(self, user, avg_sleep_duration_minutes, total_exercise_duration, avg_daily_calories):
+    def generate_advice(self, user, avg_sleep_hours, total_exercise_duration, avg_daily_calories):
         advice_list = []
-        profile = UserProfile.objects.get(user=user)
-
-        # 睡眠建议
-        if avg_sleep_duration_minutes < 7 * 60:
-            advice_list.append("您的平均睡眠时间少于7小时，建议您调整作息，争取每天有充足的睡眠。")
-
-        # 运动建议
-        if total_exercise_duration < 150:
-            advice_list.append("您近7天的运动时长较短，建议您增加运动，每周至少进行150分钟的中等强度运动。")
-
-        # 饮食建议
-        if profile.age > 18:
-            if avg_daily_calories > 2500 and profile.gender == '男':
-                advice_list.append("您的平均每日卡路里摄入较高，建议您注意饮食均衡，减少高热量食物摄入。")
-            elif avg_daily_calories > 2000 and profile.gender == '女':
-                advice_list.append("您的平均每日卡路里摄入较高，建议您注意饮食均衡，减少高热量食物摄入。")
-
-        if not advice_list:
-            advice_list.append("您的健康状况良好，请继续保持！")
-
-        return advice_list
-
-    def generate_advice(self, user, avg_sleep_duration_minutes, total_exercise_duration, avg_daily_calories):
-        advice_list = []
-
-        # 睡眠建议
-        # 修正：将7小时转换为420分钟
-        if avg_sleep_duration_minutes < 7 * 60:
-            advice_list.append("您的平均睡眠时间少于7小时，建议您调整作息，争取每天有充足的睡眠。")
-
-        # 运动建议
-        if total_exercise_duration < 150:
-            advice_list.append("您近7天的运动时长较短，建议您增加运动，每周至少进行150分钟的中等强度运动。")
-
-        # 饮食建议
         profile, created = UserProfile.objects.get_or_create(user=user)
-        if profile.age > 18:
-            if avg_daily_calories > 2500 and profile.gender == '男':
-                advice_list.append("您的平均每日卡路里摄入较高，建议您注意饮食均衡，减少高热量食物摄入。")
-            elif avg_daily_calories > 2000 and profile.gender == '女':
-                advice_list.append("您的平均每日卡路里摄入较高，建议您注意饮食均衡，减少高热量食物摄入。")
 
+        # 睡眠建议（基于小时）
+        if avg_sleep_hours < 6:
+            advice_list.append(f"⚠️ 您的平均睡眠时间仅为{avg_sleep_hours:.1f}小时，严重不足！建议保证每天7-9小时睡眠。")
+        elif avg_sleep_hours < 7:
+            advice_list.append(f"您的平均睡眠时间为{avg_sleep_hours:.1f}小时，略低于推荐值，建议增加睡眠时间。")
+
+        # 运动建议
+        if total_exercise_duration < 150:
+            advice_list.append("您上周运动量不足（推荐每周150分钟中等强度运动），建议增加日常活动。")
+        elif total_exercise_duration > 300:
+            advice_list.append(f"您上周运动量很好（共{total_exercise_duration}分钟），请继续保持！")
+
+        # 饮食建议（考虑性别差异）
+        if profile.gender == '男':
+            if avg_daily_calories > 2800:
+                advice_list.append("您的每日热量摄入偏高（男性推荐约2500大卡），注意控制饮食。")
+        elif profile.gender == '女':
+            if avg_daily_calories > 2200:
+                advice_list.append("您的每日热量摄入偏高（女性推荐约2000大卡），注意控制饮食。")
+
+        # 默认建议
         if not advice_list:
-            advice_list.append("您的健康状况良好，请继续保持！")
+            advice_list.append("您的健康状况良好，各项指标都在推荐范围内，请继续保持！")
 
         return advice_list
 
