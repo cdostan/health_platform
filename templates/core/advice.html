@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}健康建议{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h1 class="h3">您的个性化健康建议</h1>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <p><strong>年龄:</strong> {{ profile.age }} 岁</p>
+                    <p><strong>性别:</strong> {{ profile.gender }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>近7天平均睡眠:</strong> {{ avg_sleep_duration }} 小时</p>
+                    <p><strong>近7天总运动时长:</strong> {{ total_exercise_duration }} 分钟</p>
+                    <p><strong>平均每日卡路里摄入:</strong> {{ avg_daily_calories }} kcal</p>
+                </div>
+            </div>
+            <div class="alert alert-info" role="alert">
+                <h4 class="alert-heading">健康建议汇总：</h4>
+                <hr>
+                <ul>
+                    {% for item in advice %}
+                        <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

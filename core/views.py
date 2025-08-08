@@ -1,16 +1,35 @@
+from django.db.models import Avg, Sum
 from django.shortcuts import render
 
 # Create your views here.
-
-from django.shortcuts import render
 
 def home(request):
     return render(request, 'core/home.html')
 
 from django.views.generic import CreateView, ListView, TemplateView
-from .models import SleepRecord
-from .forms import SleepRecordForm
+from .models import SleepRecord,ExerciseRecord,DietRecord,UserProfile,HealthAlert
+from .forms import SleepRecordForm,ExerciseRecordForm,DietRecordForm,UserProfileForm
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from datetime import timedelta
+
+@login_required
+def profile_edit(request):
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST, instance=profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, '健康档案已更新')
+            return redirect('profile')
+    else:
+        form = UserProfileForm(instance=profile)
+
+    return render(request, 'core/profile.html', {'form': form})
 
 class SleepCreateView(LoginRequiredMixin, CreateView):
     model = SleepRecord
@@ -32,8 +51,108 @@ class SleepListView(LoginRequiredMixin, ListView):
     context_object_name = 'sleep_records'
 
     def get_queryset(self):
-        return SleepRecord.objects.filter(user=self.request.user).order_by('-date')[:7]
+        return SleepRecord.objects.filter(user=self.request.user).order_by('-date')[:14]
 
+class HealthAdviceView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/advice.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        today = timezone.localdate()
+        seven_days_ago = today - timedelta(days=7)
+
+        # 获取用户健康档案
+        profile, created = UserProfile.objects.get_or_create(user=user)
+
+        # 获取近7天的健康数据
+        sleep_records = SleepRecord.objects.filter(user=user, date__gte=seven_days_ago)
+        exercise_records = ExerciseRecord.objects.filter(user=user, date__gte=seven_days_ago)
+        diet_records = DietRecord.objects.filter(user=user, date__gte=seven_days_ago)
+
+        # 计算平均睡眠时间（小时）
+        if sleep_records:
+            total_sleep_hours = sum(r.duration for r in sleep_records)
+            avg_sleep_hours = total_sleep_hours / len(sleep_records)
+        else:
+            avg_sleep_hours = 0
+
+        # 计算运动总时长（分钟）
+        total_exercise_duration = sum(r.duration for r in exercise_records) if exercise_records else 0
+
+        # 计算平均每日卡路里
+        if diet_records:
+            avg_daily_calories = sum(r.calories for r in diet_records) / 7
+        else:
+            avg_daily_calories = 0
+
+        # 生成健康建议（使用小时单位）
+        advice = self.generate_advice(
+            user=user,
+            avg_sleep_hours=avg_sleep_hours,
+            total_exercise_duration=total_exercise_duration,
+            avg_daily_calories=avg_daily_calories
+        )
+
+        context.update({
+            'user': user,
+            'profile': profile,
+            'avg_sleep_duration': f"{avg_sleep_hours:.2f}",
+            'total_exercise_duration': total_exercise_duration,
+            'avg_daily_calories': f"{avg_daily_calories:.2f}",
+            'advice': advice,
+            'sleep_records_count': len(sleep_records)  # 添加记录数用于调试
+        })
+
+        return context
+
+    def generate_advice(self, user, avg_sleep_hours, total_exercise_duration, avg_daily_calories):
+        advice_list = []
+        profile, created = UserProfile.objects.get_or_create(user=user)
+
+        # 睡眠建议（基于小时）
+        if avg_sleep_hours < 6:
+            advice_list.append(f"⚠️ 您的平均睡眠时间仅为{avg_sleep_hours:.1f}小时，严重不足！建议保证每天7-9小时睡眠。")
+        elif avg_sleep_hours < 7:
+            advice_list.append(f"您的平均睡眠时间为{avg_sleep_hours:.1f}小时，略低于推荐值，建议增加睡眠时间。")
+
+        # 运动建议
+        if total_exercise_duration < 150:
+            advice_list.append("您上周运动量不足（推荐每周150分钟中等强度运动），建议增加日常活动。")
+        elif total_exercise_duration > 300:
+            advice_list.append(f"您上周运动量很好（共{total_exercise_duration}分钟），请继续保持！")
+
+        # 饮食建议（考虑性别差异）
+        if profile.gender == '男':
+            if avg_daily_calories > 2800:
+                advice_list.append("您的每日热量摄入偏高（男性推荐约2500大卡），注意控制饮食。")
+        elif profile.gender == '女':
+            if avg_daily_calories > 2200:
+                advice_list.append("您的每日热量摄入偏高（女性推荐约2000大卡），注意控制饮食。")
+
+        # 默认建议
+        if not advice_list:
+            advice_list.append("您的健康状况良好，各项指标都在推荐范围内，请继续保持！")
+
+        return advice_list
+
+class ExerciseCreateView(LoginRequiredMixin, CreateView):
+    model = ExerciseRecord
+    form_class = ExerciseRecordForm
+    template_name = 'core/exercise_form.html'
+    success_url = '/exercise/'
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        return super().form_valid(form)
+
+class ExerciseListView(LoginRequiredMixin, ListView):
+    model = ExerciseRecord
+    template_name = 'core/exercise_list.html'
+    context_object_name = 'exercise_records'
+
+    def get_queryset(self):
+        return ExerciseRecord.objects.filter(user=self.request.user).order_by('-date')[:7]
 from datetime import timedelta
 from django.utils import timezone
 
@@ -43,7 +162,41 @@ class HomeView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        today = timezone.now().date()
+        # 获取用户profile
+        profile = self.request.user.core_profile
+        self.check_health_alerts()
+        unread_alerts = HealthAlert.objects.filter(
+            user=self.request.user,
+            is_read=False
+        ).order_by('-created_at')
         
+        context['unread_alerts'] = unread_alerts
+        # 计算睡眠进度
+        sleep_records = SleepRecord.objects.filter(
+            user=self.request.user,
+            date=today
+        )
+        sleep_hours = sum(record.duration for record in sleep_records)
+        sleep_progress = min(100, (sleep_hours / profile.daily_sleep_goal * 100)) if profile.daily_sleep_goal else 0
+
+        # 计算运动进度
+        exercise_records = ExerciseRecord.objects.filter(
+            user=self.request.user,
+            date=today
+        )
+        exercise_calories = sum(record.calories for record in exercise_records)
+        exercise_progress = min(100, (
+                    exercise_calories / profile.daily_exercise_goal * 100)) if profile.daily_exercise_goal else 0
+
+        # 添加到上下文
+        context.update({
+            'sleep_hours': round(sleep_hours, 1),
+            'sleep_progress': round(sleep_progress),
+            'exercise_minutes': exercise_calories,
+            'exercise_progress': round(exercise_progress),
+        })
+        # 睡眠数据处理
         end_date = timezone.now().date()
         start_date = end_date - timedelta(days=6)
         date_range = [start_date + timedelta(days=x) for x in range(7)]
@@ -71,5 +224,197 @@ class HomeView(LoginRequiredMixin, TemplateView):
                 chart_data['quality'].append(0)
         
         context['chart_data'] = chart_data
+
+        # 获取今日运动记录和统计数据
+        today_exercises = ExerciseRecord.objects.filter(
+            user=self.request.user,
+            date=today
+        ).order_by('-id')
+
+        today_exercise_duration = sum(e.duration for e in today_exercises) if today_exercises.exists() else 0
+        today_exercise_calories = sum(e.calories for e in today_exercises) if today_exercises.exists() else 0
+        latest_exercise = today_exercises.first()
+
+        context['today_exercises'] = today_exercises
+        context['today_exercise_duration'] = today_exercise_duration
+        context['today_exercise_calories'] = today_exercise_calories
+        context['latest_exercise'] = latest_exercise
+
+        # 获取今日饮食记录和总卡路里
+        today_diet = DietRecord.objects.filter(
+            user=self.request.user,
+            date=today
+        ).order_by('-id')
+
+        today_calories = sum(d.calories for d in today_diet) if today_diet.exists() else 0
+        context['today_diet'] = today_diet
+        context['today_calories'] = today_calories
+        context['latest_diet'] = today_diet.first()
+
+        # 运动图表数据（保持不变）
+        exercise_records = ExerciseRecord.objects.filter(
+            user=self.request.user,
+            date__gte=start_date,
+            date__lte=end_date
+        ).order_by('date')
+
+        exercise_chart_data = {
+            'labels': [],
+            'duration': [],
+            'calories': []
+        }
+
+        for single_date in date_range:
+            exercise_chart_data['labels'].append(single_date.strftime("%m-%d"))
+            records = exercise_records.filter(date=single_date)
+            if records.exists():
+                total_duration = sum(r.duration for r in records)
+                total_calories = sum(r.calories for r in records)
+                exercise_chart_data['duration'].append(total_duration)
+                exercise_chart_data['calories'].append(total_calories)
+            else:
+                exercise_chart_data['duration'].append(0)
+                exercise_chart_data['calories'].append(0)
+
+        context['exercise_chart_data'] = exercise_chart_data
+
+        # 饮食图表数据
+        diet_records = DietRecord.objects.filter(
+            user=self.request.user,
+            date__gte=start_date,
+            date__lte=end_date
+        ).order_by('date')
+
+        diet_chart_data = {
+            'labels': [],
+            'calories': []
+        }
+
+        for single_date in date_range:
+            diet_chart_data['labels'].append(single_date.strftime("%m-%d"))
+            records = diet_records.filter(date=single_date)
+            total_calories = sum(r.calories for r in records) if records.exists() else 0
+            diet_chart_data['calories'].append(total_calories)
+
+        context['diet_chart_data'] = diet_chart_data
         return context
-    
+
+    def check_health_alerts(self):
+        """检查用户健康状态并生成提醒"""
+        user = self.request.user
+        today = timezone.now().date()
+        profile = user.core_profile
+        
+        end_date = today
+        start_date = end_date - timedelta(days=6)
+        
+        sleep_records = SleepRecord.objects.filter(
+            user=user,
+            date__gte=start_date,
+            date__lte=end_date
+        ).order_by('date')
+        
+        consecutive_sleep_shortage = 0
+        for i in range(3):  
+            check_date = today - timedelta(days=i)
+            day_records = sleep_records.filter(date=check_date)
+            
+            if day_records.exists():
+                sleep_hours = sum(record.duration for record in day_records)
+                if sleep_hours < 6:  
+                    consecutive_sleep_shortage += 1
+                else:
+                    break
+            else:
+                break
+        
+        if consecutive_sleep_shortage >= 2:
+            existing_alert = HealthAlert.objects.filter(
+                user=user,
+                alert_type='sleep',
+                is_read=False
+            ).first()
+            
+            if existing_alert:
+                existing_alert.consecutive_days = consecutive_sleep_shortage
+                existing_alert.message = f"您已连续{consecutive_sleep_shortage}天睡眠不足，请注意休息！"
+                existing_alert.save()
+            else:
+                HealthAlert.objects.create(
+                    user=user,
+                    alert_type='sleep',
+                    message=f"您已连续{consecutive_sleep_shortage}天睡眠不足，请注意休息！",
+                    consecutive_days=consecutive_sleep_shortage
+                )
+        
+        exercise_records = ExerciseRecord.objects.filter(
+            user=user,
+            date__gte=start_date,
+            date__lte=end_date
+        ).order_by('date')
+        
+        consecutive_exercise_shortage = 0
+        for i in range(3):  
+            check_date = today - timedelta(days=i)
+            day_records = exercise_records.filter(date=check_date)
+            
+            if day_records.exists():
+                exercise_calories = sum(record.calories for record in day_records)
+                if exercise_calories < profile.daily_exercise_goal * 0.5: 
+                    consecutive_exercise_shortage += 1
+                else:
+                    break
+            else:
+                break
+        
+        if consecutive_exercise_shortage >= 2:
+            existing_alert = HealthAlert.objects.filter(
+                user=user,
+                alert_type='exercise',
+                is_read=False
+            ).first()
+            
+            if existing_alert:
+                existing_alert.consecutive_days = consecutive_exercise_shortage
+                existing_alert.message = f"您已连续{consecutive_exercise_shortage}天运动量不足，请增加活动！"
+                existing_alert.save()
+            else:
+                HealthAlert.objects.create(
+                    user=user,
+                    alert_type='exercise',
+                    message=f"您已连续{consecutive_exercise_shortage}天运动量不足，请增加活动！",
+                    consecutive_days=consecutive_exercise_shortage
+                )
+
+class DietCreateView(LoginRequiredMixin, CreateView):
+    model = DietRecord
+    form_class = DietRecordForm
+    template_name = 'core/diet_form.html'
+    success_url = '/diet/'
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        return super().form_valid(form)
+
+class DietListView(LoginRequiredMixin, ListView):
+    model = DietRecord
+    template_name = 'core/diet_list.html'
+    context_object_name = 'diet_records'
+
+    def get_queryset(self):
+        return DietRecord.objects.filter(user=self.request.user).order_by('-date', 'meal_type')[:14]
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+
+@login_required
+@require_POST
+def mark_alert_as_read(request, alert_id):
+    """标记健康提醒为已读"""
+    try:
+        alert = HealthAlert.objects.get(id=alert_id, user=request.user)
+        alert.is_read = True
+        alert.save()
+        return JsonResponse({'status': 'success'})
+    except HealthAlert.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': '提醒不存在'}, status=404)

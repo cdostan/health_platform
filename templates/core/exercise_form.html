@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>记录运动</h2>
+
+    {% if form.errors %}
+    <div class="alert alert-danger">
+        {% for field, errors in form.errors.items %}
+            <strong>{{ field }}:</strong>
+            {% for error in errors %}
+                {{ error }}
+            {% endfor %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" class="col-md-6">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label for="id_date" class="form-label">运动日期</label>
+            {{ form.date }}
+        </div>
+
+        <div class="mb-3">
+            <label for="id_exercise_type" class="form-label">运动类型</label>
+            {{ form.exercise_type }}
+        </div>
+
+        <div class="mb-3">
+            <label for="id_duration" class="form-label">运动时长(分钟)</label>
+            {{ form.duration }}
+        </div>
+
+        <div class="mb-3">
+            <label for="id_calories" class="form-label">消耗卡路里</label>
+            {{ form.calories }}
+        </div>
+
+        <div class="mb-3">
+            <label for="id_notes" class="form-label">备注</label>
+            {{ form.notes }}
+        </div>
+
+        <button type="submit" class="btn btn-primary">保存记录</button>
+    </form>
+</div>
+{% endblock %}

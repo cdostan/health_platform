@@ -4,7 +4,10 @@
 <h2>登录</h2>
 <form method="post">
     {% csrf_token %}
-    {{ form.as_p }}
+    <label for="username">用户名:</label>
+    <input type="text" id="username" name="username" required minlength="3"><br>
+    <label for="password">密码:</label>
+    <input type="password" id="password" name="password" required minlength="8"><br>
     <button type="submit" class="btn btn-primary">登录</button>
 </form>
 <p>还没有账号？<a href="{% url 'signup' %}">立即注册</a></p>

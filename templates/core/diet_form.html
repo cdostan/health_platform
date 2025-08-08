@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>记录饮食</h2>
+
+    {% if form.errors %}
+    <div class="alert alert-danger">
+        {% for field, errors in form.errors.items %}
+            <strong>{{ field }}:</strong>
+            {% for error in errors %}
+                {{ error }}
+            {% endfor %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" class="col-md-6">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label for="id_date" class="form-label">饮食日期</label>
+            {{ form.date }}
+        </div>
+
+        <div class="mb-3">
+            <label for="id_meal_type" class="form-label">餐别</label>
+            {{ form.meal_type }}
+        </div>
+
+        <div class="mb-3">
+            <label for="id_food_name" class="form-label">食物名称</label>
+            {{ form.food_name }}
+        </div>
+
+        <div class="mb-3">
+            <label for="id_quantity" class="form-label">份量(g/ml)</label>
+            {{ form.quantity }}
+        </div>
+
+        <div class="mb-3">
+            <label for="id_calories" class="form-label">卡路里</label>
+            {{ form.calories }}
+        </div>
+
+        <div class="mb-3">
+            <label for="id_notes" class="form-label">备注</label>
+            {{ form.notes }}
+        </div>
+
+        <button type="submit" class="btn btn-primary">保存记录</button>
+    </form>
+</div>
+{% endblock %}

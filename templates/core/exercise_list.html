@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>我的运动记录</h2>
+        <a href="{% url 'exercise-add' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> 新增记录
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>日期</th>
+                    <th>运动类型</th>
+                    <th>时长(分钟)</th>
+                    <th>消耗卡路里</th>
+                    <th>备注</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in exercise_records %}
+                <tr>
+                    <td>{{ record.date|date:"Y-m-d" }}</td>
+                    <td>{{ record.get_exercise_type_display }}</td>
+                    <td>{{ record.duration }}</td>
+                    <td>{{ record.calories }}</td>
+                    <td>{{ record.notes|default:"-" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">暂无记录</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

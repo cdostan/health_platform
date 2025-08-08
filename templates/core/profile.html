@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4><i class="bi bi-person-lines-fill"></i> 个人健康档案</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <div class="row mb-4">
+                            <div class="col-md-4 text-center">
+                                {% if form.instance.avatar %}
+                                    <img src="{{ form.instance.avatar.url }}" class="img-thumbnail mb-3" width="150" height="150">
+                                {% else %}
+                                    <div class="bg-light d-flex align-items-center justify-content-center mb-3"
+                                         style="width:150px; height:150px; border-radius:50%;">
+                                        <i class="bi bi-person" style="font-size: 3rem;"></i>
+                                    </div>
+                                {% endif %}
+                                {{ form.avatar }}
+                            </div>
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label class="form-label">用户名</label>
+                                    <input type="text" class="form-control" name="username" value="{{ user.username }}">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">邮箱</label>
+                                    <input type="email" class="form-control" name="email" value="{{ user.email }}">
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <h5 class="mb-3"><i class="bi bi-heart-pulse"></i> 基本信息</h5>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                {{ form.gender.label_tag }}
+                                {{ form.gender }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.age.label_tag }}
+                                <div class="input-group">
+                                    {{ form.age }}
+                                    <span class="input-group-text">岁</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.height.label_tag }}
+                                <div class="input-group">
+                                    {{ form.height }}
+                                    <span class="input-group-text">cm</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.weight.label_tag }}
+                                <div class="input-group">
+                                    {{ form.weight }}
+                                    <span class="input-group-text">kg</span>
+                                </div>
+                                {% if form.instance.bmi %}
+                                    <small class="text-muted">BMI: {{ form.instance.bmi }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <h5 class="mb-3"><i class="bi bi-bullseye"></i> 健康目标</h5>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                {{ form.daily_sleep_goal.label_tag }}
+                                <div class="input-group">
+                                    {{ form.daily_sleep_goal }}
+                                    <span class="input-group-text">小时</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.daily_exercise_goal.label_tag }}
+                                <div class="input-group">
+                                    {{ form.daily_exercise_goal }}
+                                    <span class="input-group-text">卡路里</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <h5 class="mb-3"><i class="bi bi-clipboard2-pulse"></i> 健康档案</h5>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-3">
+                                    {{ form.has_allergies }}
+                                    <label class="form-check-label" for="{{ form.has_allergies.id_for_label }}">
+                                        {{ form.has_allergies.label }}
+                                    </label>
+                                </div>
+                                {{ form.allergies }}
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch mb-3">
+                                    {{ form.has_chronic_diseases }}
+                                    <label class="form-check-label" for="{{ form.has_chronic_diseases.id_for_label }}">
+                                        {{ form.has_chronic_diseases.label }}
+                                    </label>
+                                </div>
+                                {{ form.chronic_diseases }}
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> 保存更改
+                            </button>
+                            <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> 返回首页
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
