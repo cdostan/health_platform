@@ -27,11 +27,11 @@
                             <div class="col-md-8">
                                 <div class="mb-3">
                                     <label class="form-label">用户名</label>
-                                    <input type="text" class="form-control" name="username" value="{{ user.username }}">
+                                    <input type="text" class="form-control" name="username" value="{{ user.username }}" readonly>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">邮箱</label>
-                                    <input type="email" class="form-control" name="email" value="{{ user.email }}">
+                                    <input type="email" class="form-control" name="email" value="{{ user.email }}" readonly>
                                 </div>
                             </div>
                         </div>
@@ -118,9 +118,14 @@
                             <button type="submit" class="btn btn-primary">
                                 <i class="bi bi-save"></i> 保存更改
                             </button>
-                            <a href="{% url 'home' %}" class="btn btn-outline-secondary">
-                                <i class="bi bi-arrow-left"></i> 返回首页
-                            </a>
+                        </div>
+                    </form>
+                    <form action="{% url 'logout' %}" method="post">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2 mt-3">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-box-arrow-right"></i> 注销
+                            </button>
                         </div>
                     </form>
                 </div>

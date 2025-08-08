@@ -3,7 +3,7 @@ from django.contrib.auth.forms import UserCreationForm
 from .models import CustomUser
 
 class CustomUserCreationForm(UserCreationForm):
-    GENDER_CHOICES = [('M', '男'), ('F', '女'), ('O', '其他')]
+    GENDER_CHOICES = [('男', '男'), ('女', '女')]
     age = forms.IntegerField(
         label='年龄',
         min_value=1,

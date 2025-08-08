@@ -12,4 +12,7 @@ def create_user_profile(sender, instance, created, **kwargs):
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def save_user_profile(sender, instance, **kwargs):
     """用户保存时自动保存关联的Profile"""
-    instance.core_profile.save()
+    profile = instance.core_profile
+    profile.age = instance.age
+    profile.gender = instance.gender
+    profile.save()

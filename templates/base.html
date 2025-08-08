@@ -23,6 +23,63 @@
         .profile-card:hover {
             transform: translateY(-5px);
         }
+
+        /* 默认隐藏移动端导航 */
+        .mobile-navbar {
+            display: none;
+        }
+        
+        /* 媒体查询：当屏幕宽度小于768px时 */
+        @media (max-width: 767.98px) {
+            /* 隐藏桌面端导航和顶部子导航 */
+            .navbar, .health-nav {
+                display: none;
+            }
+
+            /* 显示并固定移动端导航在底部 */
+            .mobile-navbar {
+                display: block;
+                position: fixed;
+                bottom: 0;
+                width: 100%;
+                z-index: 1030;
+                background-color: #fff;
+                box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+                border-top: 1px solid #e7e7e7;
+            }
+
+            .mobile-navbar .container {
+                display: flex;
+                justify-content: space-around;
+                padding: 0;
+            }
+
+            .mobile-navbar .nav-link {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                font-size: 0.75rem;
+                padding: 0.5rem 0.25rem;
+                color: #6c757d;
+                text-decoration: none;
+            }
+
+            .mobile-navbar .nav-link i {
+                font-size: 1.2rem;
+                margin-bottom: 0.2rem;
+            }
+            
+            .mobile-navbar .nav-link.active {
+                color: #0d6efd;
+            }
+            
+            /* 确保页面内容不被底部导航栏遮挡 */
+            body {
+                padding-bottom: 56px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -90,28 +147,12 @@
                 </ul>
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarUserDropdown" role="button"
-                           data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-person-circle"></i> {{ user.username }}
+
+                        <a class="nav-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" href="{% url 'profile' %}">
+                            <i class="bi bi-person-circle"></i>
+                            {{ user.username }}
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarUserDropdown">
-                            <li>
-                                <a class="dropdown-item" href="{% url 'profile' %}">
-                                    <i class="bi bi-person-lines-fill"></i> 个人中心
-                                </a>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <form action="{% url 'logout' %}" method="post">
-                                    {% csrf_token %}
-                                    <button type="submit" class="dropdown-item">
-                                        <i class="bi bi-box-arrow-right"></i> 注销
-                                    </button>
-                                </form>
-                            </li>
-                        </ul>
-                    </li>
+
                     {% else %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'login' %}active{% endif %}"
@@ -128,6 +169,42 @@
                     {% endif %}
                 </ul>
             </div>
+        </div>
+    </nav>
+    
+    <nav class="mobile-navbar">
+        <div class="container">
+            <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}">
+                <i class="bi bi-house-door"></i>
+                <span>首页</span>
+            </a>
+            {% if user.is_authenticated %}
+            <a class="nav-link {% if 'sleep' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'sleep-list' %}">
+                <i class="bi bi-moon"></i>
+                <span>睡眠</span>
+            </a>
+            <a class="nav-link {% if 'exercise' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'exercise-list' %}">
+                <i class="bi bi-bicycle"></i>
+                <span>运动</span>
+            </a>
+            <a class="nav-link {% if 'diet' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'diet-list' %}">
+                <i class="bi bi-egg-fried"></i>
+                <span>饮食</span>
+            </a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" href="{% url 'profile' %}">
+                <i class="bi bi-person-circle"></i>
+                <span>我的</span>
+            </a>
+            {% else %}
+            <a class="nav-link {% if request.resolver_match.url_name == 'login' %}active{% endif %}" href="{% url 'login' %}">
+                <i class="bi bi-box-arrow-in-right"></i>
+                <span>登录</span>
+            </a>
+            <a class="nav-link {% if request.resolver_match.url_name == 'signup' %}active{% endif %}" href="{% url 'signup' %}">
+                <i class="bi bi-person-plus"></i>
+                <span>注册</span>
+            </a>
+            {% endif %}
         </div>
     </nav>
 
@@ -164,17 +241,29 @@
     <script>
         // 激活当前页面的导航项
         document.addEventListener('DOMContentLoaded', function() {
-            // 主导航激活
             const currentUrl = window.location.pathname;
-            document.querySelectorAll('.nav-link').forEach(link => {
-                if (link.getAttribute('href') === currentUrl) {
+
+            // 桌面端导航激活
+            document.querySelectorAll('.navbar .nav-link, .health-nav .nav-link').forEach(link => {
+                if (link.getAttribute('href') === currentUrl || link.getAttribute('href') + '/' === currentUrl) {
                     link.classList.add('active');
                 }
             });
 
-            // 健康记录子导航激活
-            document.querySelectorAll('.health-nav .nav-link').forEach(link => {
-                if (currentUrl.includes(link.getAttribute('href').split('/')[1])) {
+            // 移动端导航激活
+            document.querySelectorAll('.mobile-navbar .nav-link').forEach(link => {
+                const linkHref = link.getAttribute('href');
+                if (linkHref === currentUrl || linkHref + '/' === currentUrl) {
+                    link.classList.add('active');
+                }
+                // 特殊处理 '睡眠'、'运动'、'饮食' 等页面
+                if (currentUrl.includes('/sleep') && linkHref.includes('/sleep')) {
+                    link.classList.add('active');
+                }
+                if (currentUrl.includes('/exercise') && linkHref.includes('/exercise')) {
+                    link.classList.add('active');
+                }
+                if (currentUrl.includes('/diet') && linkHref.includes('/diet')) {
                     link.classList.add('active');
                 }
             });
