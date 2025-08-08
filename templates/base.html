@@ -24,6 +24,13 @@
             transform: translateY(-5px);
         }
 
+        .center-container {
+            min-height: 100vh; /* 保证容器占据整个视口高度 */
+            display: flex;
+            align-items: center; /* 垂直居中 */
+            justify-content: center; /* 水平居中 */
+        }
+
         /* 默认隐藏移动端导航 */
         .mobile-navbar {
             display: none;
@@ -77,7 +84,7 @@
             
             /* 确保页面内容不被底部导航栏遮挡 */
             body {
-                padding-bottom: 56px;
+                padding-bottom: 128px;
             }
         }
     </style>
@@ -174,11 +181,11 @@
     
     <nav class="mobile-navbar">
         <div class="container">
+            {% if user.is_authenticated %}
             <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'home' %}">
                 <i class="bi bi-house-door"></i>
                 <span>首页</span>
             </a>
-            {% if user.is_authenticated %}
             <a class="nav-link {% if 'sleep' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'sleep-list' %}">
                 <i class="bi bi-moon"></i>
                 <span>睡眠</span>
@@ -256,7 +263,6 @@
                 if (linkHref === currentUrl || linkHref + '/' === currentUrl) {
                     link.classList.add('active');
                 }
-                // 特殊处理 '睡眠'、'运动'、'饮食' 等页面
                 if (currentUrl.includes('/sleep') && linkHref.includes('/sleep')) {
                     link.classList.add('active');
                 }

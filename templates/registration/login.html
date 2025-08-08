@@ -1,14 +1,36 @@
 {% extends "base.html" %}
 
+{% block title %}登录{% endblock %}
+
 {% block content %}
-<h2>登录</h2>
-<form method="post">
-    {% csrf_token %}
-    <label for="username">用户名:</label>
-    <input type="text" id="username" name="username" required minlength="3"><br>
-    <label for="password">密码:</label>
-    <input type="password" id="password" name="password" required minlength="8"><br>
-    <button type="submit" class="btn btn-primary">登录</button>
-</form>
-<p>还没有账号？<a href="{% url 'signup' %}">立即注册</a></p>
+
+
+<div class="center-container">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 form-container">
+                <div class="card p-4">
+                    <h2 class="text-center mb-4">登录</h2>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="username" class="form-label">用户名:</label>
+                            <input type="text" id="username" name="username" class="form-control" required
+                                minlength="3">
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">密码:</label>
+                            <input type="password" id="password" name="password" class="form-control" required
+                                minlength="8">
+                        </div>
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary">登录</button>
+                        </div>
+                    </form>
+                    <p class="text-center mt-3">还没有账号？<a href="{% url 'signup' %}">立即注册</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
