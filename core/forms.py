@@ -5,30 +5,37 @@ from django.utils import timezone
 import datetime
 from .models import UserProfile
 
+
 class UserProfileForm(forms.ModelForm):
     class Meta:
         model = UserProfile
+        # 移除 'age' 和 'gender'
         fields = [
-            'height', 'weight', 'age','gender',
+            'height', 'weight',
             'daily_sleep_goal', 'daily_exercise_goal',
-            'blood_type', 'allergies'
+            'blood_type', 'allergies',
+            'avatar'  # 添加 'avatar' 字段
         ]
         widgets = {
             'height': forms.NumberInput(attrs={'class': 'form-control'}),
             'weight': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
-            'age': forms.NumberInput(attrs={'class': 'form-control'}),
-            'gender': forms.Select(attrs={'class': 'form-control'}),
+            # 移除 'age' 和 'gender' 的 widget 配置
             'daily_sleep_goal': forms.NumberInput(attrs={'class': 'form-control'}),
             'daily_exercise_goal': forms.NumberInput(attrs={'class': 'form-control'}),
             'blood_type': forms.Select(attrs={'class': 'form-control'}),
             'allergies': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            # 使用 FileInput 作为头像的 widget
+            'avatar': forms.FileInput(attrs={'class': 'form-control'}),
         }
+
 
 class SleepRecordForm(forms.ModelForm):
     date = forms.DateField(
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-        initial=timezone.now().strftime('%Y-%m-%d')
-    )
+        widget=forms.DateInput(
+            attrs={
+                'type': 'date',
+                'class': 'form-control'}),
+        initial=timezone.now().strftime('%Y-%m-%d'))
 
     class Meta:
         model = SleepRecord
@@ -45,7 +52,7 @@ class SleepRecordForm(forms.ModelForm):
             'wakeup_time': forms.TimeInput(
                 attrs={
                     'type': 'time',
-                    'class': 'form-control', 
+                    'class': 'form-control',
                     'value': '07:00'
                 },
                 format='%H:%M'
@@ -62,26 +69,30 @@ class SleepRecordForm(forms.ModelForm):
         bedtime = cleaned_data.get("bedtime")
         wakeup_time = cleaned_data.get("wakeup_time")
         date = cleaned_data.get("date")
-        
+
         if all([bedtime, wakeup_time, date]):
             bedtime_dt = datetime.datetime.combine(date, bedtime)
             wakeup_dt = datetime.datetime.combine(
-                date + datetime.timedelta(days=1) if wakeup_time < bedtime else date,
-                wakeup_time
-            )
-            
+                date +
+                datetime.timedelta(
+                    days=1) if wakeup_time < bedtime else date,
+                wakeup_time)
+
             duration_seconds = (wakeup_dt - bedtime_dt).total_seconds()
-            
+
             if duration_seconds < 3600:
                 raise forms.ValidationError("睡眠时长不能少于1小时")
-                
+
         return cleaned_data
+
 
 class ExerciseRecordForm(forms.ModelForm):
     date = forms.DateField(
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-        initial=timezone.now().strftime('%Y-%m-%d')
-    )
+        widget=forms.DateInput(
+            attrs={
+                'type': 'date',
+                'class': 'form-control'}),
+        initial=timezone.now().strftime('%Y-%m-%d'))
 
     class Meta:
         model = ExerciseRecord
@@ -105,15 +116,24 @@ class ExerciseRecordForm(forms.ModelForm):
             })
         }
 
+
 class DietRecordForm(forms.ModelForm):
     date = forms.DateField(
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-        initial=timezone.now().strftime('%Y-%m-%d')
-    )
+        widget=forms.DateInput(
+            attrs={
+                'type': 'date',
+                'class': 'form-control'}),
+        initial=timezone.now().strftime('%Y-%m-%d'))
 
     class Meta:
         model = DietRecord
-        fields = ['date', 'meal_type', 'food_name', 'quantity', 'calories', 'notes']
+        fields = [
+            'date',
+            'meal_type',
+            'food_name',
+            'quantity',
+            'calories',
+            'notes']
         widgets = {
             'meal_type': forms.Select(attrs={'class': 'form-control'}),
             'food_name': forms.TextInput(attrs={
@@ -136,3 +156,13 @@ class DietRecordForm(forms.ModelForm):
                 'placeholder': '可选备注'
             })
         }
+
+
+class UserSearchForm(forms.Form):
+    username = forms.CharField(
+        label='用户名',
+        max_length=150,
+        widget=forms.TextInput(
+            attrs={
+                'class': 'form-control',
+                'placeholder': '输入用户名'}))

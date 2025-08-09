@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}我的好友{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-people"></i> 我的好友</h4>
+                </div>
+                <div class="card-body">
+                    {% if friends %}
+                    <ul class="list-group">
+                        {% for friend in friends %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ friend.username }}
+                            <a href="{% url 'profile' %}" class="btn btn-sm btn-outline-primary">查看档案</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted">您还没有好友。</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-white">
+                    <h4 class="mb-0"><i class="bi bi-person-plus"></i> 好友请求</h4>
+                </div>
+                <div class="card-body">
+                    <h5>收到的请求</h5>
+                    {% if incoming_requests %}
+                    <ul class="list-group mb-3">
+                        {% for request in incoming_requests %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>来自 {{ request.from_user.username }} 的请求</span>
+                            <div>
+                                <a href="{% url 'handle_friend_request' request.id 'accept' %}" class="btn btn-sm btn-success">接受</a>
+                                <a href="{% url 'handle_friend_request' request.id 'reject' %}" class="btn btn-sm btn-danger">拒绝</a>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted">暂无新的好友请求。</p>
+                    {% endif %}
+
+                    <h5>已发送的请求</h5>
+                    {% if outgoing_requests %}
+                    <ul class="list-group">
+                        {% for request in outgoing_requests %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>已向 {{ request.to_user.username }} 发送请求</span>
+                            <a href="{% url 'handle_friend_request' request.id 'cancel' %}" class="btn btn-sm btn-secondary">取消</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted">您没有发送过好友请求。</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0"><i class="bi bi-search"></i> 查找用户</h4>
+                </div>
+                <div class="card-body">
+                    <form method="get" action="{% url 'friendship' %}">
+                        {% csrf_token %}
+                        <div class="input-group mb-3">
+                            {{ search_form.username }}
+                            <button class="btn btn-primary" type="submit">搜索</button>
+                        </div>
+                    </form>
+                    {% if search_results %}
+                    <ul class="list-group">
+                        {% for user in search_results %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ user.username }}
+                            <a href="{% url 'send_friend_request' user.username %}" class="btn btn-sm btn-success">添加好友</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

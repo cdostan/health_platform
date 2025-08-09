@@ -9,29 +9,11 @@ from django.conf import settings
 
 
 class UserProfile(models.Model):
-    GENDER_CHOICES = [
-        ('男', '男'),
-        ('女', '女'),
-    ]
     """扩展用户信息的Profile模型，与auth.User一对一关联"""
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='core_profile'  # 自定义反向关系名称
-    )
-    # 同步auth.User的字段
-    age = models.PositiveSmallIntegerField(
-        '年龄',
-        validators=[MinValueValidator(1), MaxValueValidator(120)],
-        null=True,
-        blank=True
-    )
-    gender = models.CharField(
-        '性别',
-        max_length=1,
-        choices=GENDER_CHOICES,
-        default='U',
-        blank=True
     )
 
     # 健康相关属性
@@ -76,6 +58,13 @@ class UserProfile(models.Model):
         blank=True
     )
     allergies = models.TextField('过敏史', blank=True)
+    # 头像
+    avatar = models.ImageField(
+        '头像',
+        upload_to='avatars/',
+        null=True,
+        blank=True
+    )
 
     class Meta:
         verbose_name = '用户健康档案'
@@ -206,3 +195,23 @@ class HealthAlert(models.Model):
     
     def __str__(self):
         return f"{self.user.username}的{self.get_alert_type_display()}提醒"
+
+class Friendship(models.Model):
+    STATUS_CHOICES = [
+        ('pending', '待处理'),
+        ('accepted', '已接受'),
+        ('rejected', '已拒绝'),
+    ]
+
+    from_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='friendship_sent', verbose_name='请求发送者')
+    to_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='friendship_received', verbose_name='请求接收者')
+    status = models.CharField('状态', max_length=10, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+
+    class Meta:
+        verbose_name = '好友关系'
+        verbose_name_plural = '好友关系'
+        unique_together = ('from_user', 'to_user')
+
+    def __str__(self):
+        return f"{self.from_user.username} -> {self.to_user.username} ({self.get_status_display()})"

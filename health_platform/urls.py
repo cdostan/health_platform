@@ -18,6 +18,8 @@ from django.contrib import admin, messages
 from django.urls import path, include
 from users.views import CustomLoginView, SignUpView
 from django.contrib.auth.views import LogoutView
+from django.conf import settings
+from django.conf.urls.static import static
 
 class CustomLogoutView(LogoutView):
     def dispatch(self, request, *args, **kwargs):
@@ -32,3 +34,6 @@ urlpatterns = [
     path('accounts/signup/', SignUpView.as_view(), name='signup'),
     path('', include('core.urls')),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
