@@ -18,6 +18,8 @@ from django.utils import timezone
 from datetime import timedelta
 from users.forms import CustomUserEditForm
 from django.db.models import Q
+from itertools import chain
+from operator import attrgetter
 
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
@@ -549,3 +551,29 @@ def handle_friend_request(request, request_id, action):
             messages.error(request, '您无权取消此请求。')
 
     return redirect('friendship')
+
+class SocialCircleView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/social_circle.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        # 获取所有已接受的好友
+        friends = CustomUser.objects.filter(
+            Q(friendship_sent__to_user=user, friendship_sent__status='accepted') |
+            Q(friendship_received__from_user=user, friendship_received__status='accepted')
+        ).distinct()
+
+        # 获取所有好友的健康数据记录（睡眠、运动、饮食）
+        all_records = []
+        for friend in friends:
+            all_records.extend(list(friend.sleeprecord_set.all()))
+            all_records.extend(list(friend.exerciserecord_set.all()))
+            all_records.extend(list(friend.dietrecord_set.all()))
+        
+        # 将所有记录按创建时间倒序排序
+        all_records.sort(key=attrgetter('created_at'), reverse=True)
+
+        context['all_records'] = all_records
+        return context

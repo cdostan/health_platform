@@ -1,7 +1,4 @@
-from time import timezone
 from django.db import models
-
-# Create your models here.
 from django.core.validators import MinValueValidator, MaxValueValidator
 from users.models import CustomUser
 import datetime
@@ -86,6 +83,7 @@ class SleepRecord(models.Model):
     date = models.DateField("记录日期", default=datetime.date.today)
     bedtime = models.TimeField("入睡时间")
     wakeup_time = models.TimeField("起床时间")
+    created_at = models.DateTimeField("创建时间", auto_now_add=True)
 
     class Meta:
         verbose_name = "睡眠记录"
@@ -122,6 +120,10 @@ class SleepRecord(models.Model):
     def __str__(self):
         return f"{self.user.username}的睡眠记录 - {self.date}"
 
+    @property
+    def record_type(self):
+        return 'sleep'
+
 class ExerciseRecord(models.Model):
     EXERCISE_TYPES = [
         ('running', '跑步'),
@@ -138,6 +140,7 @@ class ExerciseRecord(models.Model):
     duration = models.PositiveIntegerField("运动时长(分钟)", validators=[MinValueValidator(1)])
     calories = models.PositiveIntegerField("消耗卡路里")
     notes = models.TextField("备注", blank=True)
+    created_at = models.DateTimeField("创建时间", auto_now_add=True)
 
     class Meta:
         verbose_name = "运动记录"
@@ -146,6 +149,10 @@ class ExerciseRecord(models.Model):
 
     def __str__(self):
         return f"{self.user.username}的运动记录 - {self.date}"
+    
+    @property
+    def record_type(self):
+        return 'exercise'
 
 
 class DietRecord(models.Model):
@@ -163,6 +170,7 @@ class DietRecord(models.Model):
     quantity = models.PositiveIntegerField("份量(g/ml)", validators=[MinValueValidator(1)])
     calories = models.PositiveIntegerField("卡路里")
     notes = models.TextField("备注", blank=True)
+    created_at = models.DateTimeField("创建时间", auto_now_add=True)
 
     class Meta:
         verbose_name = "饮食记录"
@@ -172,7 +180,9 @@ class DietRecord(models.Model):
     def __str__(self):
         return f"{self.user.username}的饮食记录 - {self.date}"
 
-# ... existing code ...
+    @property
+    def record_type(self):
+        return 'diet'
 
 class HealthAlert(models.Model):
     """健康提醒模型，用于记录用户健康状态异常的提醒"""

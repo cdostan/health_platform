@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}健康圈{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-globe2"></i> 健康圈</h4>
+                </div>
+                <div class="card-body">
+                    {% if all_records %}
+                        <ul class="list-unstyled">
+                            {% for record in all_records %}
+                            <li class="mb-3">
+                                <div class="p-3 border rounded">
+                                    <div class="d-flex align-items-center mb-2">
+                                        {% if record.user.core_profile.avatar %}
+                                            <img src="{{ record.user.core_profile.avatar.url }}" alt="{{ record.user.username }}" class="rounded-circle me-2" width="40" height="40" style="object-fit: cover;">
+                                        {% else %}
+                                            <div class="bg-light d-flex align-items-center justify-content-center rounded-circle me-2" style="width:40px; height:40px;">
+                                                <i class="bi bi-person" style="font-size: 1.5rem;"></i>
+                                            </div>
+                                        {% endif %}
+                                        <div>
+                                            <h6 class="mb-0">{{ record.user.username }}</h6>
+                                            <small class="text-muted">{{ record.created_at|date:"Y年m月d日 H:i" }}</small>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        {% if record.record_type == 'sleep' %}
+                                            <p class="mb-0">
+                                                <i class="bi bi-moon-fill me-2 text-primary"></i>
+                                                睡眠：{{ record.date|date:"m月d日" }}，时长 {{ record.duration }} 小时
+                                            </p>
+                                        {% elif record.record_type == 'exercise' %}
+                                            <p class="mb-0">
+                                                <i class="bi bi-bicycle me-2 text-success"></i>
+                                                运动：{{ record.date|date:"m月d日" }}，{{ record.get_exercise_type_display }} {{ record.duration }} 分钟，消耗 {{ record.calories }} 卡路里
+                                            </p>
+                                        {% elif record.record_type == 'diet' %}
+                                            <p class="mb-0">
+                                                <i class="bi bi-egg-fried me-2 text-info"></i>
+                                                饮食：{{ record.date|date:"m月d日" }}，{{ record.get_meal_type_display }} "{{ record.food_name }}"，摄入 {{ record.calories }} 卡路里
+                                            </p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted text-center">您的健康圈还没有任何动态，快去添加好友吧！</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

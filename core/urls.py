@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .views import SleepCreateView, SleepListView, ExerciseCreateView, ExerciseListView, DietCreateView, DietListView,profile_edit, HomeView, FriendshipView
+from .views import SleepCreateView, SleepListView, ExerciseCreateView, ExerciseListView, DietCreateView, DietListView,profile_edit, HomeView, FriendshipView, SocialCircleView
 from .views import send_friend_request, handle_friend_request
 
 urlpatterns = [
@@ -18,4 +18,5 @@ urlpatterns = [
     path('friends/', FriendshipView.as_view(), name='friendship'),
     path('friends/add/<str:username>/', send_friend_request, name='send_friend_request'),
     path('friends/handle/<int:request_id>/<str:action>/', handle_friend_request, name='handle_friend_request'),
+    path('social_circle/', SocialCircleView.as_view(), name='social_circle'),
 ]
