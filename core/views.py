@@ -7,15 +7,21 @@ def home(request):
     return render(request, 'core/home.html')
 
 from django.views.generic import CreateView, ListView, TemplateView
-from .models import SleepRecord,ExerciseRecord,DietRecord,UserProfile,HealthAlert
-from .forms import SleepRecordForm,ExerciseRecordForm,DietRecordForm,UserProfileForm
+from .models import SleepRecord,ExerciseRecord,DietRecord,UserProfile,HealthAlert,Friendship
+from .forms import SleepRecordForm,ExerciseRecordForm,DietRecordForm,UserProfileForm,UserSearchForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect,get_object_or_404, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from datetime import timedelta
 from users.forms import CustomUserEditForm
+from django.db.models import Q
+
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from users.models import CustomUser
+
 
 @login_required
 def profile_edit(request):
@@ -428,3 +434,84 @@ def mark_alert_as_read(request, alert_id):
         return JsonResponse({'status': 'success'})
     except HealthAlert.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': '提醒不存在'}, status=404)
+
+class FriendshipView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/friends.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        
+        # 获取已接受的好友列表
+        friends = CustomUser.objects.filter(
+            Q(friendship_sent__to_user=user, friendship_sent__status='accepted') |
+            Q(friendship_received__from_user=user, friendship_received__status='accepted')
+        ).distinct()
+
+        # 获取收到的好友请求
+        incoming_requests = Friendship.objects.filter(to_user=user, status='pending')
+
+        # 获取已发送的好友请求
+        outgoing_requests = Friendship.objects.filter(from_user=user, status='pending')
+
+        # 处理用户搜索
+        search_form = UserSearchForm(self.request.GET)
+        search_results = []
+        if search_form.is_valid():
+            username = search_form.cleaned_data['username']
+            if username:
+                search_results = CustomUser.objects.filter(
+                    username__icontains=username
+                ).exclude(
+                    username=user.username
+                )
+
+        context.update({
+            'friends': friends,
+            'incoming_requests': incoming_requests,
+            'outgoing_requests': outgoing_requests,
+            'search_form': search_form,
+            'search_results': search_results,
+        })
+        return context
+
+@login_required
+def send_friend_request(request, username):
+    from_user = request.user
+    to_user = get_object_or_404(CustomUser, username=username)
+
+    if from_user == to_user:
+        messages.error(request, '不能添加自己为好友。')
+    elif Friendship.objects.filter(from_user=from_user, to_user=to_user).exists():
+        messages.info(request, '好友请求已发送，请勿重复操作。')
+    elif Friendship.objects.filter(from_user=to_user, to_user=from_user).exists():
+        messages.info(request, '对方已向您发送好友请求，请前往处理。')
+    else:
+        Friendship.objects.create(from_user=from_user, to_user=to_user)
+        messages.success(request, f'已向 {username} 发送好友请求。')
+
+    return redirect('friendship')
+
+@login_required
+def handle_friend_request(request, request_id, action):
+    friend_request = get_object_or_404(Friendship, id=request_id)
+    if friend_request.to_user != request.user:
+        messages.error(request, '您无权处理此请求。')
+        return redirect('friendship')
+
+    if action == 'accept':
+        friend_request.status = 'accepted'
+        friend_request.save()
+        messages.success(request, f'已接受来自 {friend_request.from_user.username} 的好友请求。')
+    elif action == 'reject':
+        friend_request.status = 'rejected'
+        friend_request.save()
+        messages.success(request, f'已拒绝来自 {friend_request.from_user.username} 的好友请求。')
+    elif action == 'cancel':
+        if friend_request.from_user == request.user:
+            friend_request.delete()
+            messages.success(request, '已取消好友请求。')
+        else:
+            messages.error(request, '您无权取消此请求。')
+
+    return redirect('friendship')

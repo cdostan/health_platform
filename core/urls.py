@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
-from .views import SleepCreateView, SleepListView, ExerciseCreateView, ExerciseListView, DietCreateView, DietListView,profile_edit, HomeView
-
+from .views import SleepCreateView, SleepListView, ExerciseCreateView, ExerciseListView, DietCreateView, DietListView,profile_edit, HomeView, FriendshipView
+from .views import send_friend_request, handle_friend_request
 
 urlpatterns = [
     path('', HomeView.as_view(), name='home'),  # 根URL对应的视图
@@ -14,4 +14,7 @@ urlpatterns = [
     path('profile/', profile_edit, name='profile'),
     path('advice/', views.HealthAdviceView.as_view(), name='health_advice'),
     path('alert/<int:alert_id>/mark-read/', views.mark_alert_as_read, name='mark-alert-read'),
+    path('friends/', FriendshipView.as_view(), name='friendship'),
+    path('friends/add/<str:username>/', send_friend_request, name='send_friend_request'),
+    path('friends/handle/<int:request_id>/<str:action>/', handle_friend_request, name='handle_friend_request'),
 ]

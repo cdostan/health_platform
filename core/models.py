@@ -195,3 +195,23 @@ class HealthAlert(models.Model):
     
     def __str__(self):
         return f"{self.user.username}的{self.get_alert_type_display()}提醒"
+
+class Friendship(models.Model):
+    STATUS_CHOICES = [
+        ('pending', '待处理'),
+        ('accepted', '已接受'),
+        ('rejected', '已拒绝'),
+    ]
+
+    from_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='friendship_sent', verbose_name='请求发送者')
+    to_user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='friendship_received', verbose_name='请求接收者')
+    status = models.CharField('状态', max_length=10, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField('创建时间', auto_now_add=True)
+
+    class Meta:
+        verbose_name = '好友关系'
+        verbose_name_plural = '好友关系'
+        unique_together = ('from_user', 'to_user')
+
+    def __str__(self):
+        return f"{self.from_user.username} -> {self.to_user.username} ({self.get_status_display()})"
