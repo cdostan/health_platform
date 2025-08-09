@@ -8,20 +8,22 @@ from .models import UserProfile
 class UserProfileForm(forms.ModelForm):
     class Meta:
         model = UserProfile
+        # 移除 'age' 和 'gender'
         fields = [
-            'height', 'weight', 'age','gender',
+            'height', 'weight',
             'daily_sleep_goal', 'daily_exercise_goal',
-            'blood_type', 'allergies'
+            'blood_type', 'allergies',
+            'avatar'  # 添加 'avatar' 字段
         ]
         widgets = {
             'height': forms.NumberInput(attrs={'class': 'form-control'}),
             'weight': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
-            'age': forms.NumberInput(attrs={'class': 'form-control'}),
-            'gender': forms.Select(attrs={'class': 'form-control'}),
+            # 移除 'age' 和 'gender' 的 widget 配置
             'daily_sleep_goal': forms.NumberInput(attrs={'class': 'form-control'}),
             'daily_exercise_goal': forms.NumberInput(attrs={'class': 'form-control'}),
             'blood_type': forms.Select(attrs={'class': 'form-control'}),
             'allergies': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'avatar': forms.FileInput(attrs={'class': 'form-control'}), # 使用 FileInput 作为头像的 widget
         }
 
 class SleepRecordForm(forms.ModelForm):

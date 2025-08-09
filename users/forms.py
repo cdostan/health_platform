@@ -31,3 +31,13 @@ class CustomUserCreationForm(UserCreationForm):
         self.fields['username'].help_text = '(至少三个字符)'
         self.fields['password1'].help_text = '(至少8个字符，不能全是数字)'
         self.fields['password2'].help_text = '(再次输入相同的密码)'
+
+# 新增用于编辑用户信息的表单
+class CustomUserEditForm(forms.ModelForm):
+    class Meta:
+        model = CustomUser
+        fields = ['age', 'gender']
+        widgets = {
+            'age': forms.NumberInput(attrs={'class': 'form-control'}),
+            'gender': forms.Select(attrs={'class': 'form-control'}),
+        }

@@ -11,8 +11,8 @@
         <div class="card-body">
             <div class="row mb-4">
                 <div class="col-md-6">
-                    <p><strong>年龄:</strong> {{ profile.age }} 岁</p>
-                    <p><strong>性别:</strong> {{ profile.gender }}</p>
+                    <p><strong>年龄:</strong> {{ user.age }} 岁</p>
+                    <p><strong>性别:</strong> {% if user.gender == '男' %}男{% else %}女{% endif %}</p>
                 </div>
                 <div class="col-md-6">
                     <p><strong>近7天平均睡眠:</strong> {{ avg_sleep_duration }} 小时</p>

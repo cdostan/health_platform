@@ -9,29 +9,11 @@ from django.conf import settings
 
 
 class UserProfile(models.Model):
-    GENDER_CHOICES = [
-        ('男', '男'),
-        ('女', '女'),
-    ]
     """扩展用户信息的Profile模型，与auth.User一对一关联"""
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='core_profile'  # 自定义反向关系名称
-    )
-    # 同步auth.User的字段
-    age = models.PositiveSmallIntegerField(
-        '年龄',
-        validators=[MinValueValidator(1), MaxValueValidator(120)],
-        null=True,
-        blank=True
-    )
-    gender = models.CharField(
-        '性别',
-        max_length=1,
-        choices=GENDER_CHOICES,
-        default='U',
-        blank=True
     )
 
     # 健康相关属性
@@ -76,6 +58,13 @@ class UserProfile(models.Model):
         blank=True
     )
     allergies = models.TextField('过敏史', blank=True)
+    # 头像
+    avatar = models.ImageField(
+        '头像',
+        upload_to='avatars/',
+        null=True,
+        blank=True
+    )
 
     class Meta:
         verbose_name = '用户健康档案'

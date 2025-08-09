@@ -15,21 +15,27 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from datetime import timedelta
+from users.forms import CustomUserEditForm
 
 @login_required
 def profile_edit(request):
     profile, created = UserProfile.objects.get_or_create(user=request.user)
+    user_form_instance = request.user
 
     if request.method == 'POST':
-        form = UserProfileForm(request.POST, instance=profile)
-        if form.is_valid():
-            form.save()
+        profile_form = UserProfileForm(request.POST, request.FILES, instance=profile) # 传递 request.FILES
+        user_form = CustomUserEditForm(request.POST, instance=user_form_instance)
+        
+        if profile_form.is_valid() and user_form.is_valid():
+            profile_form.save()
+            user_form.save()
             messages.success(request, '健康档案已更新')
             return redirect('profile')
     else:
-        form = UserProfileForm(instance=profile)
+        profile_form = UserProfileForm(instance=profile)
+        user_form = CustomUserEditForm(instance=user_form_instance)
 
-    return render(request, 'core/profile.html', {'form': form})
+    return render(request, 'core/profile.html', {'profile_form': profile_form, 'user_form': user_form})
 
 class SleepCreateView(LoginRequiredMixin, CreateView):
     model = SleepRecord
@@ -108,7 +114,10 @@ class HealthAdviceView(LoginRequiredMixin, TemplateView):
 
     def generate_advice(self, user, avg_sleep_hours, total_exercise_duration, avg_daily_calories):
         advice_list = []
-        profile, created = UserProfile.objects.get_or_create(user=user)
+        # 直接从user对象获取age和gender
+        # 修正：由于UserProfile中已移除age和gender，这里直接访问user对象
+        age = user.age
+        gender = user.gender
 
         # 睡眠建议（基于小时）
         if avg_sleep_hours < 6:
@@ -123,10 +132,11 @@ class HealthAdviceView(LoginRequiredMixin, TemplateView):
             advice_list.append(f"您上周运动量很好（共{total_exercise_duration}分钟），请继续保持！")
 
         # 饮食建议（考虑性别差异）
-        if profile.gender == '男':
+        # 修正：直接使用从user对象获取的gender
+        if gender == '男':
             if avg_daily_calories > 2800:
                 advice_list.append("您的每日热量摄入偏高（男性推荐约2500大卡），注意控制饮食。")
-        elif profile.gender == '女':
+        elif gender == '女':
             if avg_daily_calories > 2200:
                 advice_list.append("您的每日热量摄入偏高（女性推荐约2000大卡），注意控制饮食。")
 

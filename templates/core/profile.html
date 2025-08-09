@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block content %}
 <div class="container mt-4">
@@ -14,15 +15,22 @@
 
                         <div class="row mb-4">
                             <div class="col-md-4 text-center">
-                                {% if form.instance.avatar %}
-                                    <img src="{{ form.instance.avatar.url }}" class="img-thumbnail mb-3" width="150" height="150">
-                                {% else %}
-                                    <div class="bg-light d-flex align-items-center justify-content-center mb-3"
-                                         style="width:150px; height:150px; border-radius:50%;">
-                                        <i class="bi bi-person" style="font-size: 3rem;"></i>
-                                    </div>
+                                <label for="id_avatar" style="cursor: pointer;">
+                                    {% if profile_form.instance.avatar %}
+                                        <img id="avatar-preview" src="{{ profile_form.instance.avatar.url }}" alt="用户头像" class="img-thumbnail mb-3" width="150" height="150" style="object-fit: cover;">
+                                    {% else %}
+                                        <div id="avatar-preview-container" class="bg-light d-flex align-items-center justify-content-center mb-3"
+                                            style="width:150px; height:150px; border-radius:50%;">
+                                            <i class="bi bi-person" style="font-size: 3rem;"></i>
+                                        </div>
+                                    {% endif %}
+                                </label>
+                                <div style="display: none;">
+                                    {{ profile_form.avatar }}
+                                </div>
+                                {% if profile_form.errors.avatar %}
+                                    <div class="text-danger">{{ profile_form.errors.avatar }}</div>
                                 {% endif %}
-                                {{ form.avatar }}
                             </div>
                             <div class="col-md-8">
                                 <div class="mb-3">
@@ -41,31 +49,31 @@
                         <h5 class="mb-3"><i class="bi bi-heart-pulse"></i> 基本信息</h5>
                         <div class="row g-3 mb-4">
                             <div class="col-md-4">
-                                {{ form.gender.label_tag }}
-                                {{ form.gender }}
+                                {{ user_form.gender.label_tag }}
+                                {{ user_form.gender }}
                             </div>
                             <div class="col-md-4">
-                                {{ form.age.label_tag }}
+                                {{ user_form.age.label_tag }}
                                 <div class="input-group">
-                                    {{ form.age }}
+                                    {{ user_form.age }}
                                     <span class="input-group-text">岁</span>
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                {{ form.height.label_tag }}
+                                {{ profile_form.height.label_tag }}
                                 <div class="input-group">
-                                    {{ form.height }}
+                                    {{ profile_form.height }}
                                     <span class="input-group-text">cm</span>
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                {{ form.weight.label_tag }}
+                                {{ profile_form.weight.label_tag }}
                                 <div class="input-group">
-                                    {{ form.weight }}
+                                    {{ profile_form.weight }}
                                     <span class="input-group-text">kg</span>
                                 </div>
-                                {% if form.instance.bmi %}
-                                    <small class="text-muted">BMI: {{ form.instance.bmi }}</small>
+                                {% if profile_form.instance.bmi %}
+                                    <small class="text-muted">BMI: {{ profile_form.instance.bmi }}</small>
                                 {% endif %}
                             </div>
                         </div>
@@ -75,16 +83,16 @@
                         <h5 class="mb-3"><i class="bi bi-bullseye"></i> 健康目标</h5>
                         <div class="row g-3 mb-4">
                             <div class="col-md-4">
-                                {{ form.daily_sleep_goal.label_tag }}
+                                {{ profile_form.daily_sleep_goal.label_tag }}
                                 <div class="input-group">
-                                    {{ form.daily_sleep_goal }}
+                                    {{ profile_form.daily_sleep_goal }}
                                     <span class="input-group-text">小时</span>
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                {{ form.daily_exercise_goal.label_tag }}
+                                {{ profile_form.daily_exercise_goal.label_tag }}
                                 <div class="input-group">
-                                    {{ form.daily_exercise_goal }}
+                                    {{ profile_form.daily_exercise_goal }}
                                     <span class="input-group-text">卡路里</span>
                                 </div>
                             </div>
@@ -95,22 +103,12 @@
                         <h5 class="mb-3"><i class="bi bi-clipboard2-pulse"></i> 健康档案</h5>
                         <div class="row g-3 mb-4">
                             <div class="col-md-6">
-                                <div class="form-check form-switch mb-3">
-                                    {{ form.has_allergies }}
-                                    <label class="form-check-label" for="{{ form.has_allergies.id_for_label }}">
-                                        {{ form.has_allergies.label }}
-                                    </label>
-                                </div>
-                                {{ form.allergies }}
+                                {{ profile_form.blood_type.label_tag }}
+                                {{ profile_form.blood_type }}
                             </div>
                             <div class="col-md-6">
-                                <div class="form-check form-switch mb-3">
-                                    {{ form.has_chronic_diseases }}
-                                    <label class="form-check-label" for="{{ form.has_chronic_diseases.id_for_label }}">
-                                        {{ form.has_chronic_diseases.label }}
-                                    </label>
-                                </div>
-                                {{ form.chronic_diseases }}
+                                {{ profile_form.allergies.label_tag }}
+                                {{ profile_form.allergies }}
                             </div>
                         </div>
 
@@ -133,4 +131,38 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const avatarInput = document.getElementById('id_avatar');
+        if (avatarInput) {
+            avatarInput.addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const avatarPreview = document.getElementById('avatar-preview');
+                        const avatarPreviewContainer = document.getElementById('avatar-preview-container');
+                        const parent = avatarInput.closest('.text-center');
+
+                        if (avatarPreview) {
+                            avatarPreview.src = e.target.result;
+                        } else if (avatarPreviewContainer) {
+                            const newImg = document.createElement('img');
+                            newImg.id = 'avatar-preview';
+                            newImg.src = e.target.result;
+                            newImg.alt = '用户头像';
+                            newImg.className = 'img-thumbnail mb-3';
+                            newImg.width = 150;
+                            newImg.height = 150;
+                            newImg.style.objectFit = 'cover';
+                            avatarPreviewContainer.replaceWith(newImg);
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}
