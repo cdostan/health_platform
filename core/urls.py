@@ -1,7 +1,9 @@
 from django.urls import path
 from . import views
-from .views import SleepCreateView, SleepListView, ExerciseCreateView, ExerciseListView, DietCreateView, DietListView,profile_edit, HomeView, FriendshipView, SocialCircleView
-from .views import send_friend_request, handle_friend_request
+
+from .views import HomeView, SleepCreateView, SleepListView, ExerciseCreateView, ExerciseListView, DietCreateView, DietListView, profile_edit, FriendshipView, SocialCircleView
+from .views import send_friend_request, handle_friend_request, like_record, comment_on_record
+from django.views.decorators.csrf import csrf_exempt
 
 urlpatterns = [
     path('', HomeView.as_view(), name='home'),  # 根URL对应的视图
@@ -19,4 +21,6 @@ urlpatterns = [
     path('friends/add/<str:username>/', send_friend_request, name='send_friend_request'),
     path('friends/handle/<int:request_id>/<str:action>/', handle_friend_request, name='handle_friend_request'),
     path('social_circle/', SocialCircleView.as_view(), name='social_circle'),
+    path('like/<str:record_type>/<int:record_id>/', csrf_exempt(like_record), name='like_record'),
+    path('comment/<str:record_type>/<int:record_id>/', csrf_exempt(comment_on_record), name='comment_on_record'),
 ]

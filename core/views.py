@@ -8,7 +8,7 @@ def home(request):
     return render(request, 'core/home.html')
 
 from django.views.generic import CreateView, ListView, TemplateView
-from .models import SleepRecord,ExerciseRecord,DietRecord,UserProfile,HealthAlert,Friendship
+from .models import SleepRecord, ExerciseRecord, DietRecord, UserProfile, HealthAlert, Friendship, Like, Comment
 from .forms import SleepRecordForm,ExerciseRecordForm,DietRecordForm,UserProfileForm,UserSearchForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
@@ -24,7 +24,7 @@ from operator import attrgetter
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from users.models import CustomUser
-
+from django.contrib.contenttypes.models import ContentType
 
 @login_required
 def profile_edit(request):
@@ -559,13 +559,16 @@ class SocialCircleView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
 
-        # 获取所有已接受的好友
-        friends = CustomUser.objects.filter(
+        # 获取所有已接受的好友，包括自己
+        friends = list(CustomUser.objects.filter(
             Q(friendship_sent__to_user=user, friendship_sent__status='accepted') |
             Q(friendship_received__from_user=user, friendship_received__status='accepted')
-        ).distinct()
+        ).distinct())
+        
+        # 将当前用户添加到好友列表中
+        friends.append(user)
 
-        # 获取所有好友的健康数据记录（睡眠、运动、饮食）
+        # 获取所有好友和自己的健康数据记录（睡眠、运动、饮食）
         all_records = []
         for friend in friends:
             all_records.extend(list(friend.sleeprecord_set.all()))
@@ -573,7 +576,74 @@ class SocialCircleView(LoginRequiredMixin, TemplateView):
             all_records.extend(list(friend.dietrecord_set.all()))
         
         # 将所有记录按创建时间倒序排序
-        all_records.sort(key=attrgetter('created_at'), reverse=True)
+        all_records.sort(key=lambda x: x.created_at, reverse=True)
+
+        # 为每条记录添加一个属性，用于判断当前用户是否已点赞
+        for record in all_records:
+            record.user_liked = record.likes.filter(user=user).exists()
+            record.comments_list = record.comments.all()
 
         context['all_records'] = all_records
         return context
+    
+@login_required
+@require_POST
+def like_record(request, record_type, record_id):
+    model_map = {
+        'sleep': SleepRecord,
+        'exercise': ExerciseRecord,
+        'diet': DietRecord,
+    }
+    model = model_map.get(record_type)
+    if not model:
+        return JsonResponse({'error': 'Invalid record type'}, status=400)
+
+    try:
+        record = model.objects.get(id=record_id)
+        content_type = ContentType.objects.get_for_model(record)
+        like, created = Like.objects.get_or_create(user=request.user, content_type=content_type, object_id=record.id)
+
+        if not created:
+            like.delete()
+            return JsonResponse({'status': 'unliked', 'like_count': record.likes.count()})
+        else:
+            return JsonResponse({'status': 'liked', 'like_count': record.likes.count()})
+
+    except model.DoesNotExist:
+        return JsonResponse({'error': 'Record not found'}, status=404)
+
+
+@login_required
+@require_POST
+def comment_on_record(request, record_type, record_id):
+    model_map = {
+        'sleep': SleepRecord,
+        'exercise': ExerciseRecord,
+        'diet': DietRecord,
+    }
+    model = model_map.get(record_type)
+    if not model:
+        return JsonResponse({'error': 'Invalid record type'}, status=400)
+
+    try:
+        record = model.objects.get(id=record_id)
+        text = request.POST.get('text')
+        if not text:
+            return JsonResponse({'error': 'Comment text is required'}, status=400)
+
+        comment = Comment.objects.create(
+            user=request.user,
+            content_object=record,
+            text=text
+        )
+
+        return JsonResponse({
+            'status': 'success',
+            'comment': {
+                'username': comment.user.username,
+                'text': comment.text,
+                'created_at': comment.created_at.strftime('%Y年%m月%d日 %H:%M')
+            }
+        })
+    except model.DoesNotExist:
+        return JsonResponse({'error': 'Record not found'}, status=404)

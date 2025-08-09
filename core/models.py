@@ -3,7 +3,39 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from users.models import CustomUser
 import datetime
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 
+class Like(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='likes')
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = '点赞'
+        verbose_name_plural = '点赞'
+        unique_together = ('user', 'content_type', 'object_id')
+
+    def __str__(self):
+        return f'{self.user.username} liked {self.content_object}'
+
+class Comment(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='comments')
+    text = models.TextField('评论内容')
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = '评论'
+        verbose_name_plural = '评论'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user.username} commented on {self.content_object}'
 
 class UserProfile(models.Model):
     """扩展用户信息的Profile模型，与auth.User一对一关联"""
@@ -84,7 +116,8 @@ class SleepRecord(models.Model):
     bedtime = models.TimeField("入睡时间")
     wakeup_time = models.TimeField("起床时间")
     created_at = models.DateTimeField("创建时间", auto_now_add=True)
-
+    likes = GenericRelation(Like)
+    comments = GenericRelation(Comment)
     class Meta:
         verbose_name = "睡眠记录"
         verbose_name_plural = "睡眠记录"
@@ -141,7 +174,8 @@ class ExerciseRecord(models.Model):
     calories = models.PositiveIntegerField("消耗卡路里")
     notes = models.TextField("备注", blank=True)
     created_at = models.DateTimeField("创建时间", auto_now_add=True)
-
+    likes = GenericRelation(Like)
+    comments = GenericRelation(Comment)
     class Meta:
         verbose_name = "运动记录"
         verbose_name_plural = "运动记录"
@@ -171,7 +205,8 @@ class DietRecord(models.Model):
     calories = models.PositiveIntegerField("卡路里")
     notes = models.TextField("备注", blank=True)
     created_at = models.DateTimeField("创建时间", auto_now_add=True)
-
+    likes = GenericRelation(Like)
+    comments = GenericRelation(Comment)
     class Meta:
         verbose_name = "饮食记录"
         verbose_name_plural = "饮食记录"

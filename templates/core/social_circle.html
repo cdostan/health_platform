@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}健康圈{% endblock %}
 
@@ -47,6 +48,37 @@
                                             </p>
                                         {% endif %}
                                     </div>
+                                    <hr class="my-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <button class="btn btn-sm btn-link text-decoration-none like-btn"
+                                            data-url="{% url 'like_record' record.record_type record.id %}">
+                                            <i class="bi bi-heart {% if record.user_liked %}text-danger{% endif %}"></i>
+                                            <span class="like-count">{{ record.likes.count }}</span>
+                                            点赞
+                                        </button>
+                                        <button class="btn btn-sm btn-link text-decoration-none comment-toggle-btn" data-bs-toggle="collapse" data-bs-target="#comments-{{ record.id }}">
+                                            <i class="bi bi-chat-left"></i>
+                                            评论
+                                        </button>
+                                    </div>
+                                    <div class="collapse" id="comments-{{ record.id }}">
+                                        <hr class="my-2">
+                                        <div class="comment-list mb-3">
+                                            {% for comment in record.comments_list %}
+                                            <div class="comment d-flex mb-2">
+                                                <strong class="me-1">{{ comment.user.username }}:</strong>
+                                                <span>{{ comment.text }}</span>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                        <form class="comment-form" data-url="{% url 'comment_on_record' record.record_type record.id %}">
+                                            {% csrf_token %}
+                                            <div class="input-group">
+                                                <input type="text" class="form-control form-control-sm" name="text" placeholder="发表评论..." required>
+                                                <button class="btn btn-primary btn-sm" type="submit">发送</button>
+                                            </div>
+                                        </form>
+                                    </div>
                                 </div>
                             </li>
                             {% endfor %}
@@ -59,4 +91,65 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 点赞功能
+        document.querySelectorAll('.like-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const url = this.dataset.url;
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value,
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const likeIcon = this.querySelector('.bi-heart');
+                    const likeCount = this.querySelector('.like-count');
+                    
+                    if (data.status === 'liked') {
+                        likeIcon.classList.add('text-danger');
+                    } else {
+                        likeIcon.classList.remove('text-danger');
+                    }
+                    likeCount.textContent = data.like_count;
+                })
+                .catch(error => console.error('Error:', error));
+            });
+        });
+
+        // 评论功能
+        document.querySelectorAll('.comment-form').forEach(form => {
+            form.addEventListener('submit', function(event) {
+                event.preventDefault();
+                
+                const url = this.dataset.url;
+                const formData = new FormData(this);
+
+                fetch(url, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('input[name="csrfmiddlewaretoken"]').value,
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const commentList = this.closest('.collapse').querySelector('.comment-list');
+                        const newComment = document.createElement('div');
+                        newComment.className = 'comment d-flex mb-2';
+                        newComment.innerHTML = `<strong class="me-1">${data.comment.username}:</strong><span>${data.comment.text}</span>`;
+                        commentList.prepend(newComment);
+                        this.querySelector('input[name="text"]').value = '';
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            });
+        });
+    });
+</script>
 {% endblock %}
