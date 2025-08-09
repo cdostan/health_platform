@@ -14,4 +14,5 @@ urlpatterns = [
     path('profile/', profile_edit, name='profile'),
     path('advice/', views.HealthAdviceView.as_view(), name='health_advice'),
     path('alert/<int:alert_id>/mark-read/', views.mark_alert_as_read, name='mark-alert-read'),
+    path('api/search_food/', views.search_food_calories, name='search_food_calories'),
 ]

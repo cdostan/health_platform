@@ -1,5 +1,6 @@
 from django.db.models import Avg, Sum
 from django.shortcuts import render
+import requests
 
 # Create your views here.
 
@@ -418,3 +419,36 @@ def mark_alert_as_read(request, alert_id):
         return JsonResponse({'status': 'success'})
     except HealthAlert.DoesNotExist:
         return JsonResponse({'status': 'error', 'message': '提醒不存在'}, status=404)
+
+def search_food_calories(request):
+    query = request.GET.get('q', '').strip()
+    if not query:
+        return JsonResponse({'foods': []})
+
+    params = {
+        'food': query,
+        'token': "hIcaRLzOptmTXEriFgBDjQNBudFKeOfn",
+    }
+
+    API_URL = "https://api.istero.com/resource/v1/food/calorie/query"
+
+    try:
+        response = requests.get(API_URL, params=params)
+        response.raise_for_status()
+
+        api_data = response.json()
+
+        if api_data.get('code') == 200 and api_data.get('data') and api_data['data'].get('lists'):
+            results = []
+            for item in api_data['data']['lists']:
+                results.append({
+                    'name': item.get('name'),
+                    'calorie': item.get('calorie'),
+                })
+            return JsonResponse({'foods': results})
+        else:
+            return JsonResponse({'foods': [], 'message': '未找到相关食物或API返回错误'})
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error calling API: {e}")
+        return JsonResponse({'foods': [], 'message': 'API请求失败'}, status=500)

@@ -41,6 +41,17 @@
         <div class="mb-3">
             <label for="id_calories" class="form-label">卡路里</label>
             {{ form.calories }}
+            <div id="calorie-search-card" class="card position-absolute mt-1" style="display: none; z-index: 100;">
+                <div class="card-body">
+                    <div class="input-group mb-3">
+                        <input type="text" id="food-search-input" class="form-control" placeholder="搜索食物...">
+                        <button class="btn btn-outline-secondary" type="button" id="food-search-button">搜索</button>
+                    </div>
+                    <ul id="search-results-list" class="list-group">
+                        </ul>
+                </div>
+            </div>
+            
         </div>
 
         <div class="mb-3">
@@ -51,4 +62,96 @@
         <button type="submit" class="btn btn-primary">保存记录</button>
     </form>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const caloriesInput = document.getElementById('id_calories');
+        const quantityInput = document.getElementById('id_quantity'); // 获取重量输入框
+        const searchCard = document.getElementById('calorie-search-card');
+        const searchInput = document.getElementById('food-search-input');
+        const searchResultsList = document.getElementById('search-results-list');
+        
+        // 用于保存当前选定食物的每100克卡路里值
+        let selectedFoodCaloriePer100g = 0;
+
+        caloriesInput.addEventListener('focus', function() {
+            searchCard.style.display = 'block';
+        });
+
+        document.addEventListener('click', function(event) {
+            const isClickInsideCardOrInput = searchCard.contains(event.target) || caloriesInput.contains(event.target);
+            if (!isClickInsideCardOrInput) {
+                searchCard.style.display = 'none';
+            }
+        });
+
+        // 实时搜索功能
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const query = this.value;
+            if (query.length > 1) { 
+                searchTimeout = setTimeout(() => {
+                    fetchResults(query);
+                }, 300);
+            } else {
+                searchResultsList.innerHTML = '';
+            }
+        });
+
+        // 重量输入框的事件监听，用于实时计算卡路里
+        quantityInput.addEventListener('input', function() {
+            const quantity = parseFloat(this.value);
+            // 只有当重量有效且已经选择了食物时才计算
+            if (!isNaN(quantity) && selectedFoodCaloriePer100g > 0) {
+                const calculatedCalories = (selectedFoodCaloriePer100g * quantity / 100).toFixed(2);
+                caloriesInput.value = calculatedCalories;
+            }
+        });
+
+        function fetchResults(query) {
+            fetch(`/api/search_food/?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    searchResultsList.innerHTML = '';
+                    if (data.foods && data.foods.length > 0) {
+                        data.foods.forEach(food => {
+                            const listItem = document.createElement('li');
+                            listItem.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center', 'list-group-item-action');
+                            listItem.innerHTML = `
+                                <span>${food.name}</span>
+                                <span class="badge bg-primary rounded-pill">${food.calorie}</span>
+                            `;
+                            
+                            listItem.addEventListener('click', () => {
+                                const calorieValue = food.calorie.match(/(\d+)/)?.[1];
+                                if (calorieValue) {
+                                    // 1. 将卡路里基数保存到全局变量
+                                    selectedFoodCaloriePer100g = parseFloat(calorieValue);
+                                    
+                                    // 2. 将卡路里值放入输入框
+                                    caloriesInput.value = calorieValue;
+                                    
+                                    // 3. 立即触发一次重量计算，以防重量输入框有值
+                                    const quantity = parseFloat(quantityInput.value);
+                                    if (!isNaN(quantity)) {
+                                        const calculatedCalories = (selectedFoodCaloriePer100g * quantity / 100).toFixed(2);
+                                        caloriesInput.value = calculatedCalories;
+                                    }
+                                }
+                                searchCard.style.display = 'none';
+                            });
+                            searchResultsList.appendChild(listItem);
+                        });
+                    } else {
+                        searchResultsList.innerHTML = '<li class="list-group-item">未找到相关食物。</li>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    searchResultsList.innerHTML = '<li class="list-group-item text-danger">加载失败。</li>';
+                });
+        }
+    });
+</script>
 {% endblock %}
